@@ -1,3 +1,5 @@
 from shared import base
+from jobs.ouvi import alerta_ouvi
 
-print('It''s a test')
+alertas_ouvi = alerta_ouvi()
+alertas_ouvi.show()
