@@ -1,4 +1,5 @@
+#-*-coding:utf-8-*-
 from shared import base
-from jobs.ouvi import alerta_ouvi
+from jobs import Alertas
 
-alerta_ouvi()
+Alertas.generateAlertas()
