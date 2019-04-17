@@ -1,5 +1,6 @@
 #-*-coding:utf-8-*-
 from shared import base
-from jobs import Alertas
+from jobs import AlertaSession
 
-Alertas.generateAlertas()
+session = AlertaSession()
+session.generateAlertas()
