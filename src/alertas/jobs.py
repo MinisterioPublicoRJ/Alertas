@@ -12,7 +12,7 @@ from pyspark.sql.utils import AnalysisException
 
 from base import spark
 from timer import Timer
-from ouvi import alerta_ouvi
+from alerta_ouvi import alerta_ouvi
 
 class AlertaSession:
     alerta_list = {
