@@ -1,6 +1,7 @@
+#-*-coding:utf-8-*-
 from pyspark.sql.functions import *
 
-from shared.base import spark
+from base import spark
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 

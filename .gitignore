@@ -106,3 +106,6 @@ venv.bak/
 # system files
 .vscode/
 .directory
+
+# compact files for running
+*.zip

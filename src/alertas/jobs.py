@@ -10,8 +10,8 @@ from pyspark.sql.functions import *
 from pyspark.sql.types import StringType, IntegerType, TimestampType, StructField, StructType
 from pyspark.sql.utils import AnalysisException
 
-from shared.base import spark
-from shared.timer import Timer
+from base import spark
+from timer import Timer
 from ouvi import alerta_ouvi
 
 class AlertaSession:
