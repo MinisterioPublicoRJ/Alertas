@@ -13,10 +13,12 @@ from pyspark.sql.utils import AnalysisException
 from base import spark
 from timer import Timer
 from alerta_ouvi import alerta_ouvi
+from alerta_dord import alerta_dord
 
 class AlertaSession:
     alerta_list = {
         'OUVI': 'Expedientes Ouvidoria (EO) pendentes de recebimento',
+        'DORD': 'Documentos com Órgão Responsável possivelmente desatualizado',
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
