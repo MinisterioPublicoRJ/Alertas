@@ -19,6 +19,7 @@ class AlertaSession:
     alerta_list = {
         'OUVI': 'Expedientes Ouvidoria (EO) pendentes de recebimento',
         'DORD': 'Documentos com Órgão Responsável possivelmente desatualizado',
+        'MVVD': 'Documentos com vitimas recorrentes recebidos nos ultimos 30 dias',
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
@@ -65,6 +66,18 @@ class AlertaSession:
         with Timer():
             if alerta == 'OUVI':
                 dataframe = alerta_ouvi().\
+                    withColumn('alrt_dias_passados', lit('-1').cast(IntegerType())).\
+                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
+                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
+                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
+            elif alerta == 'DORD':
+                dataframe = alerta_dord().\
+                    withColumn('alrt_dias_passados', lit('-1').cast(IntegerType())).\
+                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
+                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
+                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
+            elif alerta == 'MVVD':
+                dataframe = alerta_dord().\
                     withColumn('alrt_dias_passados', lit('-1').cast(IntegerType())).\
                     withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
                     withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
