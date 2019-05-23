@@ -12,14 +12,19 @@ from pyspark.sql.utils import AnalysisException
 
 from base import spark
 from timer import Timer
-from alerta_ouvi import alerta_ouvi
 from alerta_dord import alerta_dord
+from alerta_mvvd import alerta_mvvd
+from alerta_ouvi import alerta_ouvi
+from alerta_ppfp import alerta_ppfp
+from alerta_vadf import alerta_vadf
 
 class AlertaSession:
     alerta_list = {
-        'OUVI': 'Expedientes Ouvidoria (EO) pendentes de recebimento',
         'DORD': 'Documentos com Órgão Responsável possivelmente desatualizado',
         'MVVD': 'Documentos com vitimas recorrentes recebidos nos ultimos 30 dias',
+        'OUVI': 'Expedientes de Ouvidoria (EO) pendentes de recebimento',
+        'PPFP': 'Procedimento Preparatório fora do prazo',
+        'VADF': 'Vistas abertas em documentos já fechados',
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
@@ -79,6 +84,17 @@ class AlertaSession:
             elif alerta == 'MVVD':
                 dataframe = alerta_dord().\
                     withColumn('alrt_dias_passados', lit('-1').cast(IntegerType())).\
+                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
+                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
+                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
+            elif alerta == 'VADF':
+                dataframe = alerta_vadf().\
+                    withColumn('alrt_dias_passados', lit('-1').cast(IntegerType())).\
+                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
+                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
+                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
+            elif alerta == 'PPFP':
+                dataframe = alerta_ppfp().\
                     withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
                     withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
                     withColumn('alrt_session', lit(self.session_id).cast(StringType()))
