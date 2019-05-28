@@ -14,6 +14,7 @@ from base import spark
 from timer import Timer
 from alerta_dord import alerta_dord
 from alerta_mvvd import alerta_mvvd
+from alerta_offp import alerta_offp
 from alerta_ouvi import alerta_ouvi
 from alerta_ppfp import alerta_ppfp
 from alerta_vadf import alerta_vadf
@@ -22,6 +23,7 @@ class AlertaSession:
     alerta_list = {
         'DORD': 'Documentos com Órgão Responsável possivelmente desatualizado',
         'MVVD': 'Documentos com vitimas recorrentes recebidos nos ultimos 30 dias',
+        'OFFP': 'Ofício fora do prazo',
         'OUVI': 'Expedientes de Ouvidoria (EO) pendentes de recebimento',
         'PPFP': 'Procedimento Preparatório fora do prazo',
         'VADF': 'Vistas abertas em documentos já fechados',
@@ -95,6 +97,11 @@ class AlertaSession:
                     withColumn('alrt_session', lit(self.session_id).cast(StringType()))
             elif alerta == 'PPFP':
                 dataframe = alerta_ppfp().\
+                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
+                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
+                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
+            elif alerta == 'OFFP':
+                dataframe = alerta_offp().\
                     withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
                     withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
                     withColumn('alrt_session', lit(self.session_id).cast(StringType()))
