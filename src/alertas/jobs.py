@@ -22,10 +22,12 @@ from alerta_vadf import alerta_vadf
 class AlertaSession:
     alerta_list = {
         'DORD': 'Documentos com Órgão Responsável possivelmente desatualizado',
+        'IC1A': 'ICs sem prorrogação por mais de um ano',
         'MVVD': 'Documentos com vitimas recorrentes recebidos nos ultimos 30 dias',
         'OFFP': 'Ofício fora do prazo',
         'OUVI': 'Expedientes de Ouvidoria (EO) pendentes de recebimento',
-        'PPFP': 'Procedimento Preparatório fora do prazo',
+        'PA1A': 'Procedimento Preparatório fora do prazo',
+        'PPFP': 'PAs sem prorrogação por mais de um ano',
         'VADF': 'Vistas abertas em documentos já fechados',
     }
     STATUS_RUNNING = "RUNNING"
@@ -102,6 +104,16 @@ class AlertaSession:
                     withColumn('alrt_session', lit(self.session_id).cast(StringType()))
             elif alerta == 'OFFP':
                 dataframe = alerta_offp().\
+                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
+                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
+                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
+            elif alerta == 'PA1A':
+                dataframe = alerta_pa1a().\
+                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
+                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
+                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
+            elif alerta == 'IC1A':
+                dataframe = alerta_ic1a().\
                     withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
                     withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
                     withColumn('alrt_session', lit(self.session_id).cast(StringType()))

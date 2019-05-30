@@ -23,9 +23,10 @@ def alerta_dord():
     doc_classe = documento.join(classe, documento.docu_cldc_dk == classe.CLDC_DK, 'left')
     doc_vista = doc_classe.join(vista, vista.vist_docu_dk == documento.docu_dk)
     doc_andamento = doc_vista.join(andamento, doc_vista.vist_dk == andamento.pcao_vist_dk)
-    last_andamento = doc_andamento.select(['docu_dk', 'pcao_dt_andamento']).groupBy('docu_dk')\
-        .agg({'pcao_dt_andamento': 'max'}).withColumnRenamed('max(pcao_dt_andamento)', 'last_date')\
-        .withColumnRenamed('docu_dk', 'land_docu_dk')
+    last_andamento = doc_andamento.select(['docu_dk', 'pcao_dt_andamento']).\
+        groupBy('docu_dk').agg({'pcao_dt_andamento': 'max'}).\
+        withColumnRenamed('max(pcao_dt_andamento)', 'last_date').\
+        withColumnRenamed('docu_dk', 'land_docu_dk')
     check_andamento = doc_andamento.join(
         last_andamento, 
         (doc_andamento.docu_dk == last_andamento.land_docu_dk) & (doc_andamento.pcao_dt_andamento == last_andamento.last_date)
