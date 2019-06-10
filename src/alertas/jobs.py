@@ -13,9 +13,12 @@ from pyspark.sql.utils import AnalysisException
 from base import spark
 from timer import Timer
 from alerta_dord import alerta_dord
+from alerta_ic1a import alerta_ic1a
 from alerta_mvvd import alerta_mvvd
+from alerta_nf30 import alerta_nf30
 from alerta_offp import alerta_offp
 from alerta_ouvi import alerta_ouvi
+from alerta_pa1a import alerta_pa1a
 from alerta_ppfp import alerta_ppfp
 from alerta_vadf import alerta_vadf
 
@@ -24,6 +27,7 @@ class AlertaSession:
         'DORD': 'Documentos com Órgão Responsável possivelmente desatualizado',
         'IC1A': 'ICs sem prorrogação por mais de um ano',
         'MVVD': 'Documentos com vitimas recorrentes recebidos nos ultimos 30 dias',
+        'NF30': 'Notícia de Fato a mais de 120 dias',
         'OFFP': 'Ofício fora do prazo',
         'OUVI': 'Expedientes de Ouvidoria (EO) pendentes de recebimento',
         'PA1A': 'Procedimento Preparatório fora do prazo',
@@ -114,6 +118,12 @@ class AlertaSession:
                     withColumn('alrt_session', lit(self.session_id).cast(StringType()))
             elif alerta == 'IC1A':
                 dataframe = alerta_ic1a().\
+                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
+                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
+                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
+            elif alerta == 'NF30':
+                dataframe = alerta_nf30().\
+                    withColumn('alrt_dias_passados', lit('-1').cast(IntegerType())).\
                     withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
                     withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
                     withColumn('alrt_session', lit(self.session_id).cast(StringType()))

@@ -41,7 +41,7 @@ def alerta_ic1a():
     
     doc_eventos = doc_sub_andamento.filter('stao_dk is not null').\
         groupBy(proto_columns).agg({'pcao_dt_andamento': 'max'}).\
-        withColumnRenamed('max(pcao_dt_andamento)', 'last_date')\
+        withColumnRenamed('max(pcao_dt_andamento)', 'last_date')
 
     resultado = doc_eventos.\
         withColumn('dt_fim_prazo', expr('date_add(last_date, 365)')).\
