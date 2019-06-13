@@ -24,7 +24,7 @@ pre_columns = [
 def alerta_dntj():
     documento = spark.table('exadata.mcpr_documento')
     classe = spark.table('exadata_aux.mmps_classe_hierarquia').\
-        filter("CLDC_DS_HIERARQUIA LIKE 'PROCESSO CRIMINAL%'")
+        filter("CLDC_DS_HIERARQUIA NOT LIKE 'PROCESSO CRIMINAL%'")
     personagem = spark.table('exadata.mcpr_personagem').\
         filter("pers_tppe_dk = 7")
     pessoa = spark.table('exadata.mcpr_pessoa')
