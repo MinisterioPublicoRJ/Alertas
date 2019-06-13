@@ -12,6 +12,7 @@ from pyspark.sql.utils import AnalysisException
 
 from base import spark
 from timer import Timer
+from alerta_dctj import alerta_dctj
 from alerta_dntj import alerta_dntj
 from alerta_dord import alerta_dord
 from alerta_ic1a import alerta_ic1a
@@ -25,6 +26,7 @@ from alerta_vadf import alerta_vadf
 
 class AlertaSession:
     alerta_list = {
+        'DCTJ': 'Documentos criminais sem retorno do TJ a mais de 60 dias',
         'DNTJ': 'Documentos não criminais sem retorno do TJ a mais de 120 dias',
         'DORD': 'Documentos com Órgão Responsável possivelmente desatualizado',
         'IC1A': 'ICs sem prorrogação por mais de um ano',
@@ -125,6 +127,11 @@ class AlertaSession:
                     withColumn('alrt_session', lit(self.session_id).cast(StringType()))
             elif alerta == 'DNTJ':
                 dataframe = alerta_dntj().\
+                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
+                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
+                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
+            elif alerta == 'DCTJ':
+                dataframe = alerta_dctj().\
                     withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
                     withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
                     withColumn('alrt_session', lit(self.session_id).cast(StringType()))
