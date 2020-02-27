@@ -2,7 +2,11 @@
 from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
+from decouple import config
 from base import spark
+
+schema_exadata = config('SCHEMA_EXADATA')
+schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -17,27 +21,27 @@ columns = [
 ]
 
 def alerta_pa1a():
-    documento = spark.table('exadata.mcpr_documento').\
+    documento = spark.table('%s.mcpr_documento' % schema_exadata).\
         filter('docu_tpst_dk != 11').\
         filter('docu_fsdc_dk = 1').\
         filter("""docu_cldc_dk in (
             51105, 51106, 51107, 51108, 51109, 51110, 51111, 51112, 51113, 51114, 51115, 51116, 51117, 
             51118, 51119, 51120, 51121, 51175, 51176, 51177, 51179, 51180, 51181, 51182, 51183, 51216
         )""")
-    classe = spark.table('exadata_aux.mmps_classe_hierarquia')
-    apenso = spark.table('exadata.mcpr_correlacionamento').\
+    classe = spark.table('%s.mmps_classe_hierarquia' % schema_exadata_aux)
+    apenso = spark.table('%s.mcpr_correlacionamento' % schema_exadata).\
         filter('corr_tpco_dk in (2, 6)')
-    vista = spark.table('exadata.mcpr_vista')
-    andamento = spark.table('exadata.mcpr_andamento')
-    sub_andamento = spark.table('exadata.mcpr_sub_andamento').\
+    vista = spark.table('%s.mcpr_vista' % schema_exadata)
+    andamento = spark.table('%s.mcpr_andamento' % schema_exadata)
+    sub_andamento = spark.table('%s.mcpr_sub_andamento' % schema_exadata).\
         filter('stao_tppr_dk in (6013, 6291)')
    
-    doc_apenso = documento.join(apenso, documento.docu_dk == apenso.CORR_DOCU_DK2, 'left').\
+    doc_apenso = documento.join(apenso, documento.DOCU_DK == apenso.CORR_DOCU_DK2, 'left').\
         filter('corr_tpco_dk is null')
-    doc_classe = documento.join(classe, doc_apenso.docu_cldc_dk == classe.CLDC_DK, 'left')
-    doc_vista = doc_classe.join(vista, doc_classe.docu_dk == vista.vist_docu_dk, 'left')
-    doc_andamento = doc_vista.join(andamento, doc_vista.vist_dk == andamento.pcao_vist_dk, 'left')
-    doc_sub_andamento = doc_andamento.join(sub_andamento, doc_andamento.pcao_dk == sub_andamento.stao_pcao_dk, 'left')
+    doc_classe = documento.join(classe, doc_apenso.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_vista = doc_classe.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'left')
+    doc_andamento = doc_vista.join(andamento, doc_vista.VIST_DK == andamento.PCAO_VIST_DK, 'left')
+    doc_sub_andamento = doc_andamento.join(sub_andamento, doc_andamento.PCAO_DK == sub_andamento.STAO_PCAO_DK, 'left')
     
     doc_prorrogado = doc_sub_andamento.filter('stao_dk is not null').\
         withColumn('dt_fim_prazo', expr('date_add(pcao_dt_andamento, 365)')).\

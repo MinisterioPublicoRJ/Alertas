@@ -2,7 +2,11 @@
 from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
+from decouple import config
 from base import spark
+
+schema_exadata = config('SCHEMA_EXADATA')
+schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -22,37 +26,37 @@ pre_columns = [
 ]
 
 def alerta_dntj():
-    documento = spark.table('exadata.mcpr_documento')
-    classe = spark.table('exadata_aux.mmps_classe_hierarquia').\
+    documento = spark.table('%s.mcpr_documento' % schema_exadata)
+    classe = spark.table('%s.mmps_classe_hierarquia' % schema_exadata_aux).\
         filter("CLDC_DS_HIERARQUIA NOT LIKE 'PROCESSO CRIMINAL%'")
-    personagem = spark.table('exadata.mcpr_personagem').\
+    personagem = spark.table('%s.mcpr_personagem' % schema_exadata).\
         filter("pers_tppe_dk = 7")
-    pessoa = spark.table('exadata.mcpr_pessoa')
-    mp = spark.table('exadata_aux.mmps_alias')
-    item = spark.table('exadata.mcpr_item_movimentacao')
-    movimentacao = spark.table('exadata.mcpr_movimentacao')
-    interno = spark.table('exadata.orgi_orgao').\
+    pessoa = spark.table('%s.mcpr_pessoa' % schema_exadata)
+    mp = spark.table('%s.mmps_alias' % schema_exadata_aux)
+    item = spark.table('%s.mcpr_item_movimentacao' % schema_exadata)
+    movimentacao = spark.table('%s.mcpr_movimentacao' % schema_exadata)
+    interno = spark.table('%s.orgi_orgao' % schema_exadata).\
         filter('orgi_tpor_dk = 1')
-    externo = spark.table('exadata.mprj_orgao_ext').\
+    externo = spark.table('%s.mprj_orgao_ext' % schema_exadata).\
         filter('orge_tpoe_dk in (63, 64, 65, 66, 67, 69, 70, 83)')
 
-    doc_classe = documento.join(classe, documento.docu_cldc_dk == classe.CLDC_DK, 'inner')
-    doc_personagem = doc_classe.join(personagem, doc_classe.docu_dk == personagem.pers_docu_dk, 'inner')
-    doc_pessoa = doc_personagem.join(pessoa, doc_personagem.pers_pess_dk == pessoa.pess_dk, 'inner')
-    doc_mp = doc_pessoa.join(mp, doc_pessoa.pess_nm_pessoa == mp.ALIAS, 'inner')
-    doc_item = doc_mp.join(item, doc_mp.docu_dk == item.item_docu_dk, 'inner')
-    doc_movimentacao = doc_item.join(movimentacao, doc_item.item_movi_dk == movimentacao.movi_dk, 'inner')
-    doc_promotoria = doc_movimentacao.join(interno, doc_movimentacao.movi_orga_dk_origem == interno.ORGI_DK, 'inner')
-    doc_tribunal = doc_promotoria.join(externo, doc_promotoria.movi_orga_dk_destino == externo.ORGE_ORGA_DK, 'inner').\
+    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'inner')
+    doc_personagem = doc_classe.join(personagem, doc_classe.DOCU_DK == personagem.PERS_DOCU_DK, 'inner')
+    doc_pessoa = doc_personagem.join(pessoa, doc_personagem.PERS_PESS_DK == pessoa.PESS_DK, 'inner')
+    doc_mp = doc_pessoa.join(mp, doc_pessoa.PESS_NM_PESSOA == mp.ALIAS, 'inner')
+    doc_item = doc_mp.join(item, doc_mp.DOCU_DK == item.ITEM_DOCU_DK, 'inner')
+    doc_movimentacao = doc_item.join(movimentacao, doc_item.ITEM_MOVI_DK == movimentacao.MOVI_DK, 'inner')
+    doc_promotoria = doc_movimentacao.join(interno, doc_movimentacao.MOVI_ORGA_DK_ORIGEM == interno.ORGI_DK, 'inner')
+    doc_tribunal = doc_promotoria.join(externo, doc_promotoria.MOVI_ORGA_DK_DESTINO == externo.ORGE_ORGA_DK, 'inner').\
         groupBy(pre_columns).agg({'movi_dt_recebimento_guia': 'max'}).\
         withColumnRenamed('max(movi_dt_recebimento_guia)', 'movi_dt_guia')
     
-    doc_pre_alerta = doc_tribunal.join(item, doc_tribunal.docu_dk == item.item_docu_dk, 'left')
+    doc_pre_alerta = doc_tribunal.join(item, doc_tribunal.DOCU_DK == item.ITEM_DOCU_DK, 'left')
     doc_retorno = doc_pre_alerta.join(
         movimentacao, 
-        (doc_pre_alerta.item_movi_dk == movimentacao.movi_dk) 
-            & (doc_pre_alerta.docu_orgi_orga_dk_responsavel == movimentacao.movi_orga_dk_destino)
-            & (doc_pre_alerta.movi_dt_guia < movimentacao.movi_dt_recebimento_guia), 
+        (doc_pre_alerta.ITEM_MOVI_DK == movimentacao.MOVI_DK) 
+            & (doc_pre_alerta.DOCU_ORGI_ORGA_DK_RESPONSAVEL == movimentacao.MOVI_ORGA_DK_DESTINO)
+            & (doc_pre_alerta.MOVI_DT_GUIA < movimentacao.MOVI_DT_RECEBIMENTO_GUIA), 
         'left'
     )
     doc_nao_retornado = doc_retorno.filter('movi_dk is null').\

@@ -1,7 +1,11 @@
 #-*-coding:utf-8-*-
 from pyspark.sql.functions import *
 
+from decouple import config
 from base import spark
+
+schema_exadata = config('SCHEMA_EXADATA')
+schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -25,21 +29,21 @@ col_vict = [
 ]
 
 def alerta_mvvd():
-    pessoa = spark.table('exadata.mcpr_pessoa_fisica')
-    pers_vitima = spark.table('exadata.mcpr_personagem').filter('pers_tppe_dk = 3 or pers_tppe_dk = 290')
-    pessoa_vitima = pessoa.join(pers_vitima, pessoa.pesf_pess_dk == pers_vitima.pers_pess_dk, 'inner')
+    pessoa = spark.table('%s.mcpr_pessoa_fisica' % schema_exadata)
+    pers_vitima = spark.table('%s.mcpr_personagem' % schema_exadata).filter('pers_tppe_dk = 3 or pers_tppe_dk = 290')
+    pessoa_vitima = pessoa.join(pers_vitima, pessoa.PESF_PESS_DK == pers_vitima.PERS_PESS_DK, 'inner')
     
-    doc_agressao = spark.table('exadata.mcpr_documento').filter('docu_mate_dk = 43')
+    doc_agressao = spark.table('%s.mcpr_documento' % schema_exadata).filter('docu_mate_dk = 43')
     vitimas_passadas = pessoa_vitima\
-        .join(doc_agressao, pessoa_vitima.pers_docu_dk == doc_agressao.docu_dk, 'inner')\
+        .join(doc_agressao, pessoa_vitima.PERS_DOCU_DK == doc_agressao.DOCU_DK, 'inner')\
         .select(col_vict)
  
-    documento = spark.table('exadata.mcpr_documento')\
+    documento = spark.table('%s.mcpr_documento' % schema_exadata)\
         .filter(datediff(current_date(), 'docu_dt_cadastro') <= 30)\
         .filter('docu_mate_dk = 43')
-    classe = spark.table('exadata_aux.mmps_classe_hierarquia')
-    doc_classe = documento.join(classe, documento.docu_cldc_dk == classe.CLDC_DK, 'left')
-    doc_vitima = pessoa_vitima.join(doc_classe, pessoa_vitima.pers_docu_dk == doc_classe.docu_dk, 'inner')
+    classe = spark.table('%s.mmps_classe_hierarquia' % schema_exadata_aux)
+    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.CLDC_DK, 'left')
+    doc_vitima = pessoa_vitima.join(doc_classe, pessoa_vitima.PERS_DOCU_DK == doc_classe.DOCU_DK, 'inner')
 
     vitimas_passadas.registerTempTable('vitimas_passadas')
     doc_vitima.registerTempTable('doc_vitima')

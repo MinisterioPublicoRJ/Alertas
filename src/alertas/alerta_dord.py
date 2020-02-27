@@ -1,7 +1,11 @@
 #-*-coding:utf-8-*-
 from pyspark.sql.functions import *
 
+from decouple import config
 from base import spark
+
+schema_exadata = config('SCHEMA_EXADATA')
+schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -15,21 +19,21 @@ columns = [
 ]
 
 def alerta_dord():
-    documento = spark.table('exadata.mcpr_documento')
-    classe = spark.table('exadata_aux.mmps_classe_hierarquia')
-    vista = spark.table('exadata.mcpr_vista')
-    andamento = spark.table('exadata.mcpr_andamento').filter('pcao_tpsa_dk = 2')
+    documento = spark.table('%s.mcpr_documento' % schema_exadata)
+    classe = spark.table('%s.mmps_classe_hierarquia' % schema_exadata_aux)
+    vista = spark.table('%s.mcpr_vista' % schema_exadata)
+    andamento = spark.table('%s.mcpr_andamento' % schema_exadata).filter('pcao_tpsa_dk = 2')
    
-    doc_classe = documento.join(classe, documento.docu_cldc_dk == classe.CLDC_DK, 'left')
-    doc_vista = doc_classe.join(vista, vista.vist_docu_dk == documento.docu_dk)
-    doc_andamento = doc_vista.join(andamento, doc_vista.vist_dk == andamento.pcao_vist_dk)
+    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_vista = doc_classe.join(vista, vista.VIST_DOCU_DK == documento.DOCU_DK)
+    doc_andamento = doc_vista.join(andamento, doc_vista.VIST_DK == andamento.PCAO_VIST_DK)
     last_andamento = doc_andamento.select(['docu_dk', 'pcao_dt_andamento']).\
         groupBy('docu_dk').agg({'pcao_dt_andamento': 'max'}).\
         withColumnRenamed('max(pcao_dt_andamento)', 'last_date').\
         withColumnRenamed('docu_dk', 'land_docu_dk')
     check_andamento = doc_andamento.join(
         last_andamento, 
-        (doc_andamento.docu_dk == last_andamento.land_docu_dk) & (doc_andamento.pcao_dt_andamento == last_andamento.last_date)
+        (doc_andamento.DOCU_DK == last_andamento.land_docu_dk) & (doc_andamento.PCAO_DT_ANDAMENTO == last_andamento.last_date)
     )
 
     return check_andamento.\

@@ -1,7 +1,11 @@
 #-*-coding:utf-8-*-
 from pyspark.sql.functions import *
 
+from decouple import config
 from base import spark
+
+schema_exadata = config('SCHEMA_EXADATA')
+schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -15,13 +19,13 @@ columns = [
 ]
 
 def alerta_vadf():
-    documento = spark.table('exadata.mcpr_documento')
-    classe = spark.table('exadata_aux.mmps_classe_hierarquia')
-    vista = spark.table('exadata.mcpr_vista')
+    documento = spark.table('%s.mcpr_documento' % schema_exadata)
+    classe = spark.table('%s.mmps_classe_hierarquia' % schema_exadata_aux)
+    vista = spark.table('%s.mcpr_vista' % schema_exadata)
    
-    doc_classe = documento.join(classe, documento.docu_cldc_dk == classe.CLDC_DK, 'left')
+    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
 
-    return doc_classe.join(vista, vista.vist_docu_dk == doc_classe.docu_dk, 'inner').\
+    return doc_classe.join(vista, vista.VIST_DOCU_DK == doc_classe.DOCU_DK, 'inner').\
         filter('docu_fsdc_dk != 1').\
         filter('docu_tpst_dk != 11').\
         filter('vist_dt_fechamento_vista IS NULL').\

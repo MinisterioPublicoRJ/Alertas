@@ -24,6 +24,11 @@ from alerta_pa1a import alerta_pa1a
 from alerta_ppfp import alerta_ppfp
 from alerta_vadf import alerta_vadf
 
+from decouple import config
+
+schema_exadata = config('SCHEMA_EXADATA')
+schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
+
 class AlertaSession:
     alerta_list = {
         'DCTJ': 'Documentos criminais sem retorno do TJ a mais de 60 dias',
@@ -147,7 +152,7 @@ class AlertaSession:
         if dataframe:
             with Timer():
                 dataframe.write.format('hive').\
-                    saveAsTable('exadata_aux.mmps_alertas', mode='append')
+                    saveAsTable('%s.mmps_alertas' % schema_exadata_aux, mode='append')
         else:
             self.status = self.STATUS_ERROR
             raise ValueError('Alerta nao gerado')

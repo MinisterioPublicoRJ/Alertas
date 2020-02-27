@@ -1,7 +1,11 @@
 #-*-coding:utf-8-*-
 from pyspark.sql.functions import *
 
+from decouple import config
 from base import spark
+
+schema_exadata = config('SCHEMA_EXADATA')
+schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -15,14 +19,14 @@ columns = [
 ]
 
 def alerta_ouvi():
-    documento = spark.table('exadata.mcpr_documento')
-    classe = spark.table('exadata_aux.mmps_classe_hierarquia')
-    item_mov = spark.table('exadata.mcpr_item_movimentacao')
-    mov = spark.table('exadata.mcpr_movimentacao')
-    doc_classe = documento.join(classe, documento.docu_cldc_dk == classe.CLDC_DK, 'left')
-    doc_mov = item_mov.join(mov, item_mov.item_movi_dk == mov.movi_dk, 'inner')
+    documento = spark.table('%s.mcpr_documento' % schema_exadata)
+    classe = spark.table('%s.mmps_classe_hierarquia' % schema_exadata_aux)
+    item_mov = spark.table('%s.mcpr_item_movimentacao' % schema_exadata)
+    mov = spark.table('%s.mcpr_movimentacao' % schema_exadata)
+    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_mov = item_mov.join(mov, item_mov.ITEM_MOVI_DK == mov.MOVI_DK, 'inner')
 
-    return doc_classe.join(doc_mov, doc_classe.docu_dk == doc_mov.item_docu_dk, 'inner').\
+    return doc_classe.join(doc_mov, doc_classe.DOCU_DK == doc_mov.ITEM_DOCU_DK, 'inner').\
         filter('docu_tpdc_dk = 119').\
         filter('docu_tpst_dk != 11').\
         filter('item_in_recebimento IS NULL').\
