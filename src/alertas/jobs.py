@@ -11,6 +11,7 @@ from pyspark.sql.types import StringType, IntegerType, TimestampType, StructFiel
 from pyspark.sql.utils import AnalysisException
 
 from base import spark
+from pyspark.sql import DataFrame
 from timer import Timer
 from alerta_dctj import alerta_dctj
 from alerta_dntj import alerta_dntj
@@ -24,30 +25,27 @@ from alerta_pa1a import alerta_pa1a
 from alerta_ppfp import alerta_ppfp
 from alerta_vadf import alerta_vadf
 
-from decouple import config
-
-schema_exadata = config('SCHEMA_EXADATA')
-schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
 
 class AlertaSession:
     alerta_list = {
-        'DCTJ': 'Documentos criminais sem retorno do TJ a mais de 60 dias',
-        'DNTJ': 'Documentos não criminais sem retorno do TJ a mais de 120 dias',
-        'DORD': 'Documentos com Órgão Responsável possivelmente desatualizado',
-        'IC1A': 'ICs sem prorrogação por mais de um ano',
-        'MVVD': 'Documentos com vitimas recorrentes recebidos nos ultimos 30 dias',
-        'NF30': 'Notícia de Fato a mais de 120 dias',
-        'OFFP': 'Ofício fora do prazo',
-        'OUVI': 'Expedientes de Ouvidoria (EO) pendentes de recebimento',
-        'PA1A': 'Procedimento Preparatório fora do prazo',
-        'PPFP': 'PAs sem prorrogação por mais de um ano',
-        'VADF': 'Vistas abertas em documentos já fechados',
+        'DCTJ': ['Documentos criminais sem retorno do TJ a mais de 60 dias', alerta_dctj],
+        'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
+        'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
+        'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
+        'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_dord],
+        'OFFP': ['Ofício fora do prazo', alerta_offp],
+        'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi],
+        'PA1A': ['Procedimento Preparatório fora do prazo', alerta_pa1a],
+        'PPFP': ['PAs sem prorrogação por mais de um ano', alerta_ppfp],
+        'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf],
+        #'NF30': 'Notícia de Fato a mais de 120 dias',
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
     STATUS_ERROR = "ERROR"
 
-    def __init__(self):
+    def __init__(self, options):
+        self.options = options
         self.session_id = str(uuid.uuid4().int & (1<<60)-1)
         self.start_session = self.now()
         self.end_session = None
@@ -73,88 +71,35 @@ class AlertaSession:
         data = [(self.session_id, self.start_session, self.end_session, self.status)]
         
         session_df = spark.createDataFrame(data, schema)
-        session_df.write.format('hive').saveAsTable('exadata_aux.mmps_alerta_sessao', mode='append')
+        session_df = session_df.withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
+        session_df.coalesce(1).write.format('parquet').saveAsTable('%s.mmps_alerta_sessao' % self.options['schema_exadata_aux'], mode='append')
             
     def generateAlertas(self):
         print('Verificando alertas existentes em {0}'.format(datetime.today()))
         with Timer():
-            for alerta in self.alerta_list:
-                self.generateAlerta(alerta)
+            dfs = []
+            for alerta, (desc, func) in self.alerta_list.items():
+                dfs.append(self.generateAlerta(alerta, desc, func))
+            df = reduce(DataFrame.unionAll, dfs)
+            self.write_dataframe(df)
             self.wrapAlertas()
 
-    def generateAlerta(self, alerta):
-        print('Verificando alertas do tipo: {0}'.format(self.alerta_list[alerta]))
-        dataframe = None
+    def generateAlerta(self, alerta, desc, func):
+        print('Verificando alertas do tipo: {0}'.format(alerta))
         with Timer():
-            if alerta == 'OUVI':
-                dataframe = alerta_ouvi().\
-                    withColumn('alrt_dias_passados', lit('-1').cast(IntegerType())).\
-                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
-                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            elif alerta == 'DORD':
-                dataframe = alerta_dord().\
-                    withColumn('alrt_dias_passados', lit('-1').cast(IntegerType())).\
-                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
-                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            elif alerta == 'MVVD':
-                dataframe = alerta_dord().\
-                    withColumn('alrt_dias_passados', lit('-1').cast(IntegerType())).\
-                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
-                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            elif alerta == 'VADF':
-                dataframe = alerta_vadf().\
-                    withColumn('alrt_dias_passados', lit('-1').cast(IntegerType())).\
-                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
-                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            elif alerta == 'PPFP':
-                dataframe = alerta_ppfp().\
-                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
-                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            elif alerta == 'OFFP':
-                dataframe = alerta_offp().\
-                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
-                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            elif alerta == 'PA1A':
-                dataframe = alerta_pa1a().\
-                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
-                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            elif alerta == 'IC1A':
-                dataframe = alerta_ic1a().\
-                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
-                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            elif alerta == 'DNTJ':
-                dataframe = alerta_dntj().\
-                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
-                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            elif alerta == 'DCTJ':
-                dataframe = alerta_dctj().\
-                    withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
-                    withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-                    withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            # elif alerta == 'NF30':
-            #    dataframe = alerta_nf30().\
-            #        withColumn('alrt_descricao', lit(self.alerta_list[alerta]).cast(StringType())).\
-            #        withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-            #        withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            else:
-                raise KeyError('Alerta desconhecido')
-        
-        print('Gravando alertas do tipo {0}'.format(self.alerta_list[alerta]))
-        if dataframe:
-            with Timer():
-                dataframe.write.format('hive').\
-                    saveAsTable('%s.mmps_alertas' % schema_exadata_aux, mode='append')
-        else:
-            self.status = self.STATUS_ERROR
-            raise ValueError('Alerta nao gerado')
+            dataframe = func(self.options)
+            dataframe = dataframe.withColumn('alrt_dias_passados', lit(-1)) if 'alrt_dias_passados' not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn('alrt_descricao', lit(desc).cast(StringType())).\
+                withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
+                withColumn('alrt_session', lit(self.session_id).cast(StringType()))
+        return dataframe
+    
+
+    def write_dataframe(self, dataframe):
+        #print('Gravando alertas do tipo {0}'.format(self.alerta_list[alerta]))
+        with Timer():
+            dataframe = dataframe.withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
+            dataframe.coalesce(20).write.format('parquet').partitionBy("dt_partition").\
+                saveAsTable('%s.mmps_alertas' % self.options['schema_exadata_aux'], mode='append')
 
 
