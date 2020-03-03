@@ -1,2 +1,2 @@
 hdfs
-python-decouple
+argparse
