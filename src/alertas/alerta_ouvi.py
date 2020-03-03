@@ -1,11 +1,8 @@
 #-*-coding:utf-8-*-
 from pyspark.sql.functions import *
 
-from decouple import config
 from base import spark
 
-schema_exadata = config('SCHEMA_EXADATA')
-schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -18,11 +15,11 @@ columns = [
     col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia')
 ]
 
-def alerta_ouvi():
-    documento = spark.table('%s.mcpr_documento' % schema_exadata)
-    classe = spark.table('%s.mmps_classe_hierarquia' % schema_exadata_aux)
-    item_mov = spark.table('%s.mcpr_item_movimentacao' % schema_exadata)
-    mov = spark.table('%s.mcpr_movimentacao' % schema_exadata)
+def alerta_ouvi(options):
+    documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
+    item_mov = spark.table('%s.mcpr_item_movimentacao' % options['schema_exadata'])
+    mov = spark.table('%s.mcpr_movimentacao' % options['schema_exadata'])
     doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     doc_mov = item_mov.join(mov, item_mov.ITEM_MOVI_DK == mov.MOVI_DK, 'inner')
 

@@ -5,8 +5,6 @@ from pyspark.sql.functions import *
 from decouple import config
 from base import spark
 
-schema_exadata = config('SCHEMA_EXADATA')
-schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -20,16 +18,16 @@ columns = [
     col('elapsed').alias('alrt_dias_passados')
 ]
 
-def alerta_ppfp():
-    documento = spark.table('%s.mcpr_documento' % schema_exadata).\
+def alerta_ppfp(options):
+    documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
         filter('docu_tpst_dk != 11').\
         filter('docu_fsdc_dk = 1').\
         filter('docu_cldc_dk = 395').\
         withColumn('elapsed', lit(datediff(current_date(), 'docu_dt_cadastro')).cast(IntegerType()))
-    classe = spark.table('%s.mmps_classe_hierarquia' % schema_exadata_aux)
-    vista = spark.table('%s.mcpr_vista' % schema_exadata)
-    andamento = spark.table('%s.mcpr_andamento' % schema_exadata)
-    sub_andamento = spark.table('%s.mcpr_sub_andamento' % schema_exadata).filter('stao_tppr_dk = 6291')
+    classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
+    vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
+    andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata'])
+    sub_andamento = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).filter('stao_tppr_dk = 6291')
    
     doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     doc_vista = doc_classe.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'left')

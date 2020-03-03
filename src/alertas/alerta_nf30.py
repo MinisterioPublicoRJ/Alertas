@@ -1,11 +1,8 @@
 #-*-coding:utf-8-*-
 from pyspark.sql.functions import *
 
-from decouple import config
 from base import spark
 
-schema_exadata = config('SCHEMA_EXADATA')
-schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
 
 aut_col = [
     'docu_dk', 'docu_nr_mp', 'docu_nr_externo', 'docu_tx_etiqueta', 'vist_dk',
@@ -23,15 +20,15 @@ columns = [
     col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia')
 ]
 
-def alerta_nf30():
-    documento = spark.table('%s.mcpr_documento' % schema_exadata).\
+def alerta_nf30(options):
+    documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
         filter('docu_tpst_dk != 11').\
         filter('docu_fsdc_dk = 1').\
         filter('docu_cldc_dk = 393')
-    classe = spark.table('%s.mmps_classe_hierarquia' % schema_exadata_aux)
-    vista = spark.table('%s.mcpr_vista' % schema_exadata)
-    andamento = spark.table('%s.mcpr_andamento' % schema_exadata)
-    sub_andamento = spark.table('%s.mcpr_sub_andamento' % schema_exadata).\
+    classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
+    vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
+    andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata'])
+    sub_andamento = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).\
         filter('stao_tppr_dk in (6034, 6631, 7751, 7752)')
     
 

@@ -2,11 +2,7 @@
 from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
-from decouple import config
 from base import spark
-
-schema_exadata = config('SCHEMA_EXADATA')
-schema_exadata_aux = config('SCHEMA_EXADATA_AUX')
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -25,19 +21,19 @@ pre_columns = [
     'cldc_ds_hierarquia', 'cldc_ds_classe'
 ]
 
-def alerta_dctj():
-    documento = spark.table('%s.mcpr_documento' % schema_exadata)
-    classe = spark.table('%s.mmps_classe_hierarquia' % schema_exadata_aux).\
+def alerta_dctj(options):
+    documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux']).\
         filter("CLDC_DS_HIERARQUIA LIKE 'PROCESSO CRIMINAL%'")
-    personagem = spark.table('%s.mcpr_personagem' % schema_exadata).\
+    personagem = spark.table('%s.mcpr_personagem' % options['schema_exadata']).\
         filter("pers_tppe_dk = 7")
-    pessoa = spark.table('%s.mcpr_pessoa' % schema_exadata)
-    mp = spark.table('%s.mmps_alias' % schema_exadata_aux)
-    item = spark.table('%s.mcpr_item_movimentacao' % schema_exadata)
-    movimentacao = spark.table('%s.mcpr_movimentacao' % schema_exadata)
-    interno = spark.table('%s.orgi_orgao' % schema_exadata).\
+    pessoa = spark.table('%s.mcpr_pessoa' % options['schema_exadata'])
+    mp = spark.table('%s.mmps_alias' % options['schema_exadata_aux'])
+    item = spark.table('%s.mcpr_item_movimentacao' % options['schema_exadata'])
+    movimentacao = spark.table('%s.mcpr_movimentacao' % options['schema_exadata'])
+    interno = spark.table('%s.orgi_orgao' % options['schema_exadata']).\
         filter('orgi_tpor_dk = 1')
-    externo = spark.table('%s.mprj_orgao_ext' % schema_exadata).\
+    externo = spark.table('%s.mprj_orgao_ext' % options['schema_exadata']).\
         filter('orge_tpoe_dk in (63, 64, 65, 66, 67, 69, 70, 83)')
 
     doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'inner')
@@ -61,7 +57,8 @@ def alerta_dctj():
         'left'
     )
     doc_nao_retornado = doc_retorno.filter('movi_dk is null').\
-        withColumn('dt_fim_prazo', expr('date_add(movi_dt_guia, 60)')).\
+        withColumn('dt_fim_prazo', expr("to_timestamp(date_add(movi_dt_guia, 60), 'yyyy-MM-dd HH:mm:ss')")).\
         withColumn('elapsed', lit(datediff(current_date(), 'dt_fim_prazo')).cast(IntegerType()))
+        #withColumn('dt_fim_prazo', expr('date_add(movi_dt_guia, 60)')).\
 
     return doc_nao_retornado.filter('elapsed > 0').select(columns)
