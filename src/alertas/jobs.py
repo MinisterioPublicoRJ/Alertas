@@ -13,6 +13,7 @@ from pyspark.sql.utils import AnalysisException
 from base import spark
 from pyspark.sql import DataFrame
 from timer import Timer
+from utils import _update_impala_table
 from alerta_dctj import alerta_dctj
 from alerta_dntj import alerta_dntj
 from alerta_dord import alerta_dord
@@ -45,6 +46,7 @@ class AlertaSession:
     STATUS_ERROR = "ERROR"
 
     def __init__(self, options):
+        spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
         self.options = options
         self.session_id = str(uuid.uuid4().int & (1<<60)-1)
         self.start_session = self.now()
@@ -94,12 +96,23 @@ class AlertaSession:
                 withColumn('alrt_session', lit(self.session_id).cast(StringType()))
         return dataframe
     
+    def check_table_exists(self, schema, table_name):
+        spark.sql("use %s" % schema)
+        result_table_check = spark.sql("SHOW TABLES LIKE '%s'" % table_name).count()
+        return True if result_table_check > 0 else False
 
     def write_dataframe(self, dataframe):
         #print('Gravando alertas do tipo {0}'.format(self.alerta_list[alerta]))
         with Timer():
             dataframe = dataframe.withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
-            dataframe.coalesce(20).write.format('parquet').partitionBy("dt_partition").\
-                saveAsTable('%s.mmps_alertas' % self.options['schema_exadata_aux'], mode='append')
+            
+            is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], "mmps_alertas")
+            table_name = '%s.mmps_alertas' % self.options['schema_exadata_aux']
+            if is_exists_table_alertas:
+                dataframe.coalesce(20).write.mode("overwrite").insertInto(table_name, overwrite=True)
+            else:
+                dataframe.write.partitionBy("dt_partition").saveAsTable(table_name)
+
+            _update_impala_table(table_name, self.options['impala_host'], self.options['impala_port'])
 
 
