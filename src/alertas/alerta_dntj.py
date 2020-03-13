@@ -2,7 +2,6 @@
 from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
-from decouple import config
 from base import spark
 
 
