@@ -1,7 +1,6 @@
 #-*-coding:utf-8-*-
 from pyspark.sql.functions import *
 
-from decouple import config
 from base import spark
 
 columns = [
