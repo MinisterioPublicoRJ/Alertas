@@ -38,7 +38,7 @@ def alerta_mvvd(options):
         .filter(datediff(current_date(), 'docu_dt_cadastro') <= 30)\
         .filter('docu_mate_dk = 43')
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.CLDC_DK, 'left')
+    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     doc_vitima = pessoa_vitima.join(doc_classe, pessoa_vitima.PERS_DOCU_DK == doc_classe.DOCU_DK, 'inner')
 
     vitimas_passadas.registerTempTable('vitimas_passadas')
