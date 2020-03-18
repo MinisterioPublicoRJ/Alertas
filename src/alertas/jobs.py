@@ -109,9 +109,9 @@ class AlertaSession:
             is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], "mmps_alertas")
             table_name = '%s.mmps_alertas' % self.options['schema_exadata_aux']
             if is_exists_table_alertas:
-                dataframe.coalesce(20).write.mode("overwrite").insertInto(table_name, overwrite=True)
+                dataframe.repartition(20).write.mode("overwrite").insertInto(table_name, overwrite=True)
             else:
-                dataframe.write.partitionBy("dt_partition").saveAsTable(table_name)
+                dataframe.repartition(20).write.partitionBy("dt_partition").saveAsTable(table_name)
 
             _update_impala_table(table_name, self.options['impala_host'], self.options['impala_port'])
 
