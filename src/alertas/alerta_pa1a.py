@@ -51,4 +51,4 @@ def alerta_pa1a(options):
 
     resultado = doc_prorrogado.union(doc_nao_prorrogado)
     
-    return resultado.filter('elapsed > 0').select(columns)
+    return resultado.filter('elapsed > 0').select(columns).distinct()
