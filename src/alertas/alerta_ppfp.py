@@ -38,4 +38,4 @@ def alerta_ppfp(options):
 
     resultado = doc_prorrogado.union(doc_nao_prorrogado)
     
-    return resultado.select(columns)
+    return resultado.select(columns).distinct()
