@@ -31,9 +31,9 @@ class AlertaSession:
     alerta_list = {
         'DCTJ': ['Documentos criminais sem retorno do TJ a mais de 60 dias', alerta_dctj],
         'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
-        'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
+        # 'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
         'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
-        'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_dord],
+        'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
         'OFFP': ['Ofício fora do prazo', alerta_offp],
         'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi],
         'PA1A': ['Procedimento Preparatório fora do prazo', alerta_pa1a],
