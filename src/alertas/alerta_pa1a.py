@@ -35,7 +35,7 @@ def alerta_pa1a(options):
    
     doc_apenso = documento.join(apenso, documento.DOCU_DK == apenso.CORR_DOCU_DK2, 'left').\
         filter('corr_tpco_dk is null')
-    doc_classe = documento.join(classe, doc_apenso.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_classe = doc_apenso.join(classe, doc_apenso.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     doc_vista = doc_classe.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'left')
     doc_andamento = doc_vista.join(andamento, doc_vista.VIST_DK == andamento.PCAO_VIST_DK, 'left')
     doc_sub_andamento = doc_andamento.join(sub_andamento, doc_andamento.PCAO_DK == sub_andamento.STAO_PCAO_DK, 'left')
