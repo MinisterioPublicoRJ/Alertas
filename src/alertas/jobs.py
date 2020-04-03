@@ -49,6 +49,7 @@ class AlertaSession:
 
     def __init__(self, options):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
+        spark.conf.set("spark.sql.autoBroadcastJoinThreshold", -1)
         self.options = options
         self.session_id = str(uuid.uuid4().int & (1<<60)-1)
         self.start_session = self.now()
