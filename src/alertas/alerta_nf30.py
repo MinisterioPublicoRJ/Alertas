@@ -1,4 +1,5 @@
 #-*-coding:utf-8-*-
+from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -15,9 +16,10 @@ columns = [
     col('docu_nr_externo').alias('alrt_docu_nr_externo'), 
     col('docu_tx_etiqueta').alias('alrt_docu_etiqueta'), 
     col('cldc_ds_classe').alias('alrt_docu_classe'),
-    col('dt_fim_prazo').alias('alrt_docu_date'),  
+    col('data_autuacao').alias('alrt_docu_date'),  
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia')
+    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
+    col('elapsed').alias('alrt_dias_passados'),
 ]
 
 def alerta_nf30(options):
@@ -27,12 +29,13 @@ def alerta_nf30(options):
         filter('docu_cldc_dk = 393')
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
     vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
+    promotor = spark.table('%s.rh_funcionario' % options['schema_exadata']).\
+        filter('cdtipfunc = 1')
     andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata'])
     sub_andamento = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).\
         filter('stao_tppr_dk in (6034, 6631, 7751, 7752)')
     
-
-    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.CLDC_DK, 'left')
+    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     doc_vista = doc_classe.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'inner')
     doc_andamento = doc_vista.join(andamento, doc_vista.VIST_DK == andamento.PCAO_VIST_DK, 'inner')
     doc_sub_andamento = doc_andamento.join(sub_andamento, doc_andamento.PCAO_DK == sub_andamento.STAO_PCAO_DK, 'inner')
@@ -41,8 +44,17 @@ def alerta_nf30(options):
         withColumnRenamed('max(pcao_dt_andamento)', 'data_autuacao').\
         withColumnRenamed('vist_dk', 'id_vista')
 
-    doc_revisado = doc_autuado.join(vista, doc_autuado.DOCU_DK == vista.VIST_DOCU_DK, 'inner').\
+    vista_promotor = vista.join(promotor, vista.VIST_PESF_PESS_DK_RESP_ANDAM == promotor.PESF_PESS_DK, 'inner')
+    doc_revisado = doc_autuado.join(vista_promotor, doc_autuado.docu_dk == vista.VIST_DOCU_DK, 'inner').\
+        filter('id_vista != vist_dk').\
         filter('data_autuacao < vist_dt_abertura_vista').\
-        filter('id_vista != vist_dk')
-    # Não é possível dar prosseguimento, pois não há informações de RH no BDA, de modo
-    # a avaliar se a vista foi aberta por membro ativo da casa (de modo a contar os 120 dias)
+        withColumnRenamed('docu_dk', 'reviewed_docu_dk').select(['reviewed_docu_dk'])
+    
+    doc_nao_revisado = doc_autuado.join(doc_revisado, doc_autuado.docu_dk == doc_revisado.reviewed_docu_dk, 'left').\
+        filter('reviewed_docu_dk IS NULL')
+
+    resultado = doc_nao_revisado.\
+        withColumn('elapsed', lit(datediff(current_date(), 'data_autuacao')).cast(IntegerType())).\
+        filter('elapsed > 120')
+
+    return resultado.select(columns) 
