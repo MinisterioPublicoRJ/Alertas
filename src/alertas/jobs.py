@@ -34,14 +34,14 @@ class AlertaSession:
         'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
         # 'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
         'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
-        # 'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
+        'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
         'OFFP': ['Ofício fora do prazo', alerta_offp],
         'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi],
         'PA1A': ['Procedimento Preparatório fora do prazo', alerta_pa1a],
         'PPFP': ['PAs sem prorrogação por mais de um ano', alerta_ppfp],
         'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf],
-        # 'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30],
-        # 'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
+        'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30],
+        'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
