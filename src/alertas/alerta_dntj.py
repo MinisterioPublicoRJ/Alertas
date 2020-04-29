@@ -40,7 +40,6 @@ def alerta_dntj(options):
     doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'inner')
     doc_personagem = doc_classe.join(personagem, doc_classe.DOCU_DK == personagem.PERS_DOCU_DK, 'inner')
     doc_pessoa = doc_personagem.join(pessoa, doc_personagem.PERS_PESS_DK == pessoa.PESS_DK, 'inner')
-    #doc_mp = doc_pessoa.join(mp, doc_pessoa.PESS_NM_PESSOA == mp.alias, 'inner')
     doc_mp = doc_pessoa.alias('doc_pessoa').join(mp.alias('mp'), col('doc_pessoa.PESS_NM_PESSOA') == col('mp.alias'), 'inner')
     doc_item = doc_mp.join(item, doc_mp.DOCU_DK == item.ITEM_DOCU_DK, 'inner')
     doc_movimentacao = doc_item.join(movimentacao, doc_item.ITEM_MOVI_DK == movimentacao.MOVI_DK, 'inner')
@@ -58,8 +57,7 @@ def alerta_dntj(options):
         'left'
     )
     doc_nao_retornado = doc_retorno.filter('movi_dk is null').\
-        withColumn('dt_fim_prazo', expr("to_timestamp(date_add(movi_dt_recebimento_guia, 120), 'yyyy-MM-dd HH:mm:ss')")).\
+        withColumn('dt_fim_prazo', expr("to_timestamp(date_add(movi_dt_guia, 120), 'yyyy-MM-dd HH:mm:ss')")).\
         withColumn('elapsed', lit(datediff(current_date(), 'dt_fim_prazo')).cast(IntegerType()))
-        #withColumn('dt_fim_prazo', expr('date_add(movi_dt_guia, 120)')).\
 
     return doc_nao_retornado.filter('elapsed > 0').select(columns)
