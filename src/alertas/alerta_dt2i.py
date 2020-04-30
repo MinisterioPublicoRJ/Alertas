@@ -68,7 +68,7 @@ def alerta_dt2i(options):
         doc_cie_rec.rec_docu_dk == doc_recente.alrt_docu_dk,
         'inner' 
     )
-    return doc_rec_week.select(
+    resultado = doc_rec_week.select(
         "alrt_docu_dk",
         "alrt_docu_nr_mp",
         "alrt_docu_nr_externo",
@@ -90,3 +90,15 @@ def alerta_dt2i(options):
         max("pcao_dt_andamento").alias("alrt_docu_date"),
         min("elapsed").alias("alrt_dias_passados") 
     )
+
+    return resultado.select([
+        'alrt_docu_dk', 
+        'alrt_docu_nr_mp', 
+        'alrt_docu_nr_externo', 
+        'alrt_docu_etiqueta', 
+        'alrt_docu_classe',
+        'alrt_docu_date',  
+        'alrt_orgi_orga_dk',
+        'alrt_classe_hierarquia',
+        'alrt_dias_passados',
+    ])
