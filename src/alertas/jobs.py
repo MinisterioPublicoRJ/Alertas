@@ -18,6 +18,7 @@ from alerta_dctj import alerta_dctj
 from alerta_dntj import alerta_dntj
 from alerta_dord import alerta_dord
 from alerta_dt2i import alerta_dt2i
+from alerta_gate import alerta_gate
 from alerta_ic1a import alerta_ic1a
 from alerta_mvvd import alerta_mvvd
 from alerta_nf30 import alerta_nf30
@@ -33,6 +34,7 @@ class AlertaSession:
         'DCTJ': ['Documentos criminais sem retorno do TJ a mais de 60 dias', alerta_dctj],
         'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
         'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
+        'GATE': ['Documentos com novas ITs do GATE', alerta_gate],
         'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
         'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
         'OFFP': ['Ofício fora do prazo', alerta_offp],
