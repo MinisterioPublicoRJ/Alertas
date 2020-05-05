@@ -12,4 +12,5 @@ spark2-submit --master yarn --deploy-mode cluster \
     --conf spark.driver.maxResultSize=6000 \
     --conf spark.default.parallelism=30 \
     --conf spark.sql.shuffle.partitions=30 \
+    --conf "spark.executor.extraJavaOptions=-XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35" \
     --py-files src/alertas/*.py,packages/*.egg,packages/*.whl,packages/*.zip src/alertas/main.py $@
