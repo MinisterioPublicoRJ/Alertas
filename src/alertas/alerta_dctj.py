@@ -22,7 +22,8 @@ pre_columns = [
 ]
 
 def alerta_dctj(options):
-    documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
+        filter('docu_fsdc_dk = 1')
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux']).\
         filter("CLDC_DS_HIERARQUIA LIKE 'PROCESSO CRIMINAL%'")
     personagem = spark.table('%s.mcpr_personagem' % options['schema_exadata']).\
