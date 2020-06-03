@@ -33,7 +33,7 @@ class AlertaSession:
     alerta_list = {
         'DCTJ': ['Documentos criminais sem retorno do TJ a mais de 60 dias', alerta_dctj],
         'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
-        'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
+        # 'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
         'GATE': ['Documentos com novas ITs do GATE', alerta_gate],
         'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
         'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
