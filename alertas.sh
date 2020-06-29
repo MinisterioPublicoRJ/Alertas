@@ -10,11 +10,13 @@ spark2-submit --master yarn --deploy-mode cluster \
     --conf spark.executor.memoryOverhead=4g \
     --conf spark.driver.memoryOverhead=2g \
     --conf spark.driver.maxResultSize=5g \
-    --conf spark.network.timeout=360 \
+    --conf spark.network.timeout=900 \
     --conf spark.speculation=true \
     --conf spark.default.parallelism=30 \
     --conf spark.sql.shuffle.partitions=30 \
     --conf spark.locality.wait=0 \
     --conf spark.shuffle.io.numConnectionsPerPeer=3 \
+    --conf spark.shuffle.io.maxRetries=5 \
+    --conf spark.shuffle.io.retryWait=15s \
     --conf "spark.executor.extraJavaOptions=-XX:+UseG1GC -XX:InitiatingHeapOccupancyPercent=35" \
     --py-files src/alertas/*.py,packages/*.egg,packages/*.whl,packages/*.zip src/alertas/main.py $@
