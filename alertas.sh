@@ -10,8 +10,10 @@ spark2-submit --master yarn --deploy-mode cluster \
     --conf spark.executor.memoryOverhead=4g \
     --conf spark.driver.memoryOverhead=2g \
     --conf spark.driver.maxResultSize=5g \
-    --conf spark.network.timeout=900 \
+    --conf spark.network.timeout=3600 \
     --conf spark.speculation=true \
+    --conf spark.speculation.multiplier=2 \
+    --conf spark.speculation.quantile=0 \
     --conf spark.default.parallelism=30 \
     --conf spark.sql.shuffle.partitions=30 \
     --conf spark.locality.wait=0 \
