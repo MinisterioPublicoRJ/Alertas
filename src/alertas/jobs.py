@@ -98,7 +98,6 @@ class AlertaSession:
             first = True
             for alerta, (desc, func) in self.alerta_list.items():
                 dfs.append(self.generateAlerta(alerta, desc, func, first))
-                first = False
             # df = reduce(DataFrame.unionAll, dfs)
             self.write_dataframe(dfs)
             # self.wrapAlertas()
@@ -110,16 +109,13 @@ class AlertaSession:
             dataframe = dataframe.withColumn('alrt_dias_passados', lit(-1)) if 'alrt_dias_passados' not in dataframe.columns else dataframe
             dataframe = dataframe.withColumn('alrt_descricao', lit(desc).cast(StringType())).\
                 withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
-                withColumn('alrt_session', lit(self.session_id).cast(StringType()))
-            dataframe = dataframe.withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
+                withColumn('alrt_session', lit(self.session_id).cast(StringType())).\
+                withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
 
             table_name = "temp_mmps_alertas"
-            if first:
-                dataframe.write.mode("append").saveAsTable(table_name)
-            else:
-                dataframe.write.mode("append").insertInto(table_name, overwrite=False)
+            dataframe.write.mode("append").saveAsTable(table_name)
 
-        #return table_name
+        return table_name
 
     def check_table_exists(self, schema, table_name):
         spark.sql("use %s" % schema)
@@ -129,25 +125,17 @@ class AlertaSession:
     def write_dataframe(self, dataframes):
         #print('Gravando alertas do tipo {0}'.format(self.alerta_list[alerta]))
         with Timer():
-            #dataframe = dataframe.withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
 
-            #query = ""
-            #for table_name in dataframes:
-            #    if query:
-            #        query += " UNION ALL "
-            #    query += "SELECT * FROM {}".format(table_name)
-            #dataframe = spark.sql(query)
-
-            dataframe = spark.table("temp_mmps_alertas")
+            temp_table_df = spark.table("temp_mmps_alertas")
 
             is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], "test_mmps_alertas")
             table_name = '%s.test_mmps_alertas' % self.options['schema_exadata_aux']
             if is_exists_table_alertas:
-                dataframe.repartition("dt_partition").write.mode("overwrite").insertInto(table_name, overwrite=True)
+                temp_table_df.repartition("dt_partition").write.mode("overwrite").insertInto(table_name, overwrite=True)
             else:
-                dataframe.repartition(20).write.partitionBy("dt_partition").saveAsTable(table_name)
-
-            spark.sql("drop table temp_mmps_alertas")
+                temp_table_df.repartition("dt_partition").write.partitionBy("dt_partition").saveAsTable(table_name)
+            
+            spark.sql("drop table default.temp_mmps_alertas")
 
             _update_impala_table(table_name, self.options['impala_host'], self.options['impala_port'])
 
