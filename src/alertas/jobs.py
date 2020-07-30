@@ -84,7 +84,6 @@ class AlertaSession:
     def generateAlertas(self):
         print('Verificando alertas existentes em {0}'.format(datetime.today()))
         with Timer():
-            dfs = []
             spark.table('%s.mcpr_documento' % self.options['schema_exadata']) \
                 .createOrReplaceTempView("documento")
             spark.catalog.cacheTable("documento")
@@ -95,14 +94,12 @@ class AlertaSession:
             spark.catalog.cacheTable("vista")
             spark.sql("from vista").count()
 
-            first = True
             for alerta, (desc, func) in self.alerta_list.items():
-                dfs.append(self.generateAlerta(alerta, desc, func, first))
-            # df = reduce(DataFrame.unionAll, dfs)
-            self.write_dataframe(dfs)
+                self.generateAlerta(alerta, desc, func)
+            self.write_dataframe()
             # self.wrapAlertas()
 
-    def generateAlerta(self, alerta, desc, func, first):
+    def generateAlerta(self, alerta, desc, func):
         print('Verificando alertas do tipo: {0}'.format(alerta))
         with Timer():
             dataframe = func(self.options)
@@ -115,17 +112,14 @@ class AlertaSession:
             table_name = "temp_mmps_alertas"
             dataframe.write.mode("append").saveAsTable(table_name)
 
-        return table_name
-
     def check_table_exists(self, schema, table_name):
         spark.sql("use %s" % schema)
         result_table_check = spark.sql("SHOW TABLES LIKE '%s'" % table_name).count()
         return True if result_table_check > 0 else False
 
-    def write_dataframe(self, dataframes):
+    def write_dataframe(self):
         #print('Gravando alertas do tipo {0}'.format(self.alerta_list[alerta]))
         with Timer():
-
             temp_table_df = spark.table("temp_mmps_alertas")
 
             is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], "test_mmps_alertas")
