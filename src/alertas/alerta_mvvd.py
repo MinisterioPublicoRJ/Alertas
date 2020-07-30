@@ -47,16 +47,22 @@ def alerta_mvvd(options):
 
     vitimas_passadas.registerTempTable('vitimas_passadas')
     doc_vitima.registerTempTable('doc_vitima')
-    resultado = spark.sql("""SELECT * 
-        FROM doc_vitima d
-            JOIN vitimas_passadas v ON (
-                d.pesf_pess_dk = v.vict_pess_dk
-                OR d.pesf_cpf = v.vict_cpf
-                OR d.pesf_nr_rg = v.vict_rg
-                OR (d.pesf_nm_pessoa_fisica = v.vict_nome AND(
-                    d.pesf_nm_mae = v.vict_mae
-                    OR d.pesf_dt_nasc = v.vict_nasc
-                ))
-            )""")
+    resultado = spark.sql("""
+        SELECT * 
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_pess_dk = v.vict_pess_dk
+        UNION ALL
+        SELECT * 
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_cpf = v.vict_cpf
+        WHERE d.pesf_cpf != '00000000000'
+        UNION ALL
+        SELECT * 
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nr_rg = v.vict_rg
+        UNION ALL
+        SELECT * 
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nm_pessoa_fisica = v.vict_nome AND d.pesf_nm_mae = v.vict_mae
+        UNION ALL
+        SELECT * 
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nm_pessoa_fisica = v.vict_nome AND d.pesf_dt_nasc = v.vict_nasc
+    """)
 
     return resultado.select(columns)
