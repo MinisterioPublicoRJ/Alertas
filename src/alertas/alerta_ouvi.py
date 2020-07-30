@@ -16,11 +16,12 @@ columns = [
 ]
 
 def alerta_ouvi(options):
-    documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    documento = spark.sql("from documento")
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
     item_mov = spark.table('%s.mcpr_item_movimentacao' % options['schema_exadata'])
     mov = spark.table('%s.mcpr_movimentacao' % options['schema_exadata'])
-    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     doc_mov = item_mov.join(mov, item_mov.ITEM_MOVI_DK == mov.MOVI_DK, 'inner')
 
     return doc_classe.join(doc_mov, doc_classe.DOCU_DK == doc_mov.ITEM_DOCU_DK, 'inner').\

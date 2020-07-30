@@ -85,11 +85,21 @@ class AlertaSession:
         print('Verificando alertas existentes em {0}'.format(datetime.today()))
         with Timer():
             dfs = []
+            spark.table('%s.mcpr_documento' % self.options['schema_exadata']) \
+                .createOrReplaceTempView("documento")
+            spark.catalog.cacheTable("documento")
+            spark.sql("from documento").count()
+
+            spark.table('%s.mcpr_vista' % self.options['schema_exadata']) \
+                .createOrReplaceTempView("vista")
+            spark.catalog.cacheTable("vista")
+            spark.sql("from vista").count()
+
             for alerta, (desc, func) in self.alerta_list.items():
                 dfs.append(self.generateAlerta(alerta, desc, func))
             df = reduce(DataFrame.unionAll, dfs)
             self.write_dataframe(df)
-            self.wrapAlertas()
+            #self.wrapAlertas()
 
     def generateAlerta(self, alerta, desc, func):
         print('Verificando alertas do tipo: {0}'.format(alerta))
@@ -114,7 +124,7 @@ class AlertaSession:
             is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], "mmps_alertas")
             table_name = '%s.mmps_alertas' % self.options['schema_exadata_aux']
             if is_exists_table_alertas:
-                dataframe.repartition(20).write.mode("overwrite").insertInto(table_name, overwrite=True)
+                dataframe.repartition("dt_partition").write.mode("overwrite").insertInto(table_name, overwrite=True)
             else:
                 dataframe.repartition(20).write.partitionBy("dt_partition").saveAsTable(table_name)
 

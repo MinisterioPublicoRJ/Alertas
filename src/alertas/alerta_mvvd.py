@@ -29,16 +29,20 @@ def alerta_mvvd(options):
     pers_vitima = spark.table('%s.mcpr_personagem' % options['schema_exadata']).filter('pers_tppe_dk = 3 or pers_tppe_dk = 290')
     pessoa_vitima = pessoa.join(pers_vitima, pessoa.PESF_PESS_DK == pers_vitima.PERS_PESS_DK, 'inner')
     
-    doc_agressao = spark.table('%s.mcpr_documento' % options['schema_exadata']).filter('docu_mate_dk = 43')
+    # doc_agressao = spark.table('%s.mcpr_documento' % options['schema_exadata']).filter('docu_mate_dk = 43')
+    doc_agressao = spark.sql("from documento").filter('docu_mate_dk = 43')
     vitimas_passadas = pessoa_vitima\
         .join(doc_agressao, pessoa_vitima.PERS_DOCU_DK == doc_agressao.DOCU_DK, 'inner')\
         .select(col_vict)
  
-    documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])\
+    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])\
+    #     .filter(datediff(current_date(), 'docu_dt_cadastro') <= 30)\
+    #     .filter('docu_mate_dk = 43')
+    documento = spark.sql("from documento")\
         .filter(datediff(current_date(), 'docu_dt_cadastro') <= 30)\
         .filter('docu_mate_dk = 43')
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     doc_vitima = pessoa_vitima.join(doc_classe, pessoa_vitima.PERS_DOCU_DK == doc_classe.DOCU_DK, 'inner')
 
     vitimas_passadas.registerTempTable('vitimas_passadas')

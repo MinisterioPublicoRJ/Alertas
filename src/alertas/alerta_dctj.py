@@ -2,6 +2,7 @@
 from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
+
 from base import spark
 
 columns = [
@@ -22,8 +23,9 @@ pre_columns = [
 ]
 
 def alerta_dctj(options):
-    documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
-        filter('docu_fsdc_dk = 1')
+    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
+    #     filter('docu_fsdc_dk = 1')
+    documento = spark.sql("from documento").filter('docu_fsdc_dk = 1')
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux']).\
         filter("CLDC_DS_HIERARQUIA LIKE 'PROCESSO CRIMINAL%'")
     personagem = spark.table('%s.mcpr_personagem' % options['schema_exadata']).\
@@ -44,8 +46,8 @@ def alerta_dctj(options):
     doc_mp = doc_pessoa.alias('doc_pessoa').join(mp.alias('mp'), col('doc_pessoa.PESS_NM_PESSOA') == col('mp.alias'), 'inner')
     doc_item = doc_mp.join(item, doc_mp.DOCU_DK == item.ITEM_DOCU_DK, 'inner')
     doc_movimentacao = doc_item.join(movimentacao, doc_item.ITEM_MOVI_DK == movimentacao.MOVI_DK, 'inner')
-    doc_promotoria = doc_movimentacao.join(interno, doc_movimentacao.MOVI_ORGA_DK_ORIGEM == interno.ORGI_DK, 'inner')
-    doc_tribunal = doc_promotoria.join(externo, doc_promotoria.MOVI_ORGA_DK_DESTINO == externo.ORGE_ORGA_DK, 'inner').\
+    doc_promotoria = doc_movimentacao.join(broadcast(interno), doc_movimentacao.MOVI_ORGA_DK_ORIGEM == interno.ORGI_DK, 'inner')
+    doc_tribunal = doc_promotoria.join(broadcast(externo), doc_promotoria.MOVI_ORGA_DK_DESTINO == externo.ORGE_ORGA_DK, 'inner').\
         groupBy(pre_columns).agg({'movi_dt_recebimento_guia': 'max'}).\
         withColumnRenamed('max(movi_dt_recebimento_guia)', 'movi_dt_guia')
     
