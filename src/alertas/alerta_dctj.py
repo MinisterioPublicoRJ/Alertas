@@ -2,6 +2,7 @@
 from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
+
 from base import spark
 
 columns = [
@@ -22,8 +23,9 @@ pre_columns = [
 ]
 
 def alerta_dctj(options):
-    documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
-        filter('docu_fsdc_dk = 1')
+    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
+    #     filter('docu_fsdc_dk = 1')
+    documento = spark.sql("from documento").filter('docu_fsdc_dk = 1')
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux']).\
         filter("CLDC_DS_HIERARQUIA LIKE 'PROCESSO CRIMINAL%'")
     personagem = spark.table('%s.mcpr_personagem' % options['schema_exadata']).\
@@ -37,15 +39,15 @@ def alerta_dctj(options):
     externo = spark.table('%s.mprj_orgao_ext' % options['schema_exadata']).\
         filter('orge_tpoe_dk in (63, 64, 65, 66, 67, 69, 70, 83)')
 
-    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'inner')
+    doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'inner')
     doc_personagem = doc_classe.join(personagem, doc_classe.DOCU_DK == personagem.PERS_DOCU_DK, 'inner')
     doc_pessoa = doc_personagem.join(pessoa, doc_personagem.PERS_PESS_DK == pessoa.PESS_DK, 'inner')
     #doc_mp = doc_pessoa.join(mp, doc_pessoa.PESS_NM_PESSOA == mp.alias, 'inner')
-    doc_mp = doc_pessoa.alias('doc_pessoa').join(mp.alias('mp'), col('doc_pessoa.PESS_NM_PESSOA') == col('mp.alias'), 'inner')
+    doc_mp = doc_pessoa.alias('doc_pessoa').join(broadcast(mp.alias('mp')), col('doc_pessoa.PESS_NM_PESSOA') == col('mp.alias'), 'inner')
     doc_item = doc_mp.join(item, doc_mp.DOCU_DK == item.ITEM_DOCU_DK, 'inner')
     doc_movimentacao = doc_item.join(movimentacao, doc_item.ITEM_MOVI_DK == movimentacao.MOVI_DK, 'inner')
-    doc_promotoria = doc_movimentacao.join(interno, doc_movimentacao.MOVI_ORGA_DK_ORIGEM == interno.ORGI_DK, 'inner')
-    doc_tribunal = doc_promotoria.join(externo, doc_promotoria.MOVI_ORGA_DK_DESTINO == externo.ORGE_ORGA_DK, 'inner').\
+    doc_promotoria = doc_movimentacao.join(broadcast(interno), doc_movimentacao.MOVI_ORGA_DK_ORIGEM == interno.ORGI_DK, 'inner')
+    doc_tribunal = doc_promotoria.join(broadcast(externo), doc_promotoria.MOVI_ORGA_DK_DESTINO == externo.ORGE_ORGA_DK, 'inner').\
         groupBy(pre_columns).agg({'movi_dt_recebimento_guia': 'max'}).\
         withColumnRenamed('max(movi_dt_recebimento_guia)', 'movi_dt_guia')
     
