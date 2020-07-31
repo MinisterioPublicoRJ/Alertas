@@ -23,19 +23,24 @@ columns = [
 ]
 
 def alerta_nf30(options):
-    documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
+    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
+    #     filter('docu_tpst_dk != 11').\
+    #     filter('docu_fsdc_dk = 1').\
+    #     filter('docu_cldc_dk = 393')
+    documento = spark.sql("from documento").\
         filter('docu_tpst_dk != 11').\
         filter('docu_fsdc_dk = 1').\
         filter('docu_cldc_dk = 393')
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
+    # vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
+    vista = spark.sql("from vista")
     promotor = spark.table('%s.rh_funcionario' % options['schema_exadata']).\
         filter('cdtipfunc = 1')
     andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata'])
     sub_andamento = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).\
         filter('stao_tppr_dk in (6034, 6631, 7751, 7752)')
     
-    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     doc_vista = doc_classe.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'inner')
     doc_andamento = doc_vista.join(andamento, doc_vista.VIST_DK == andamento.PCAO_VIST_DK, 'inner')
     doc_sub_andamento = doc_andamento.join(sub_andamento, doc_andamento.PCAO_DK == sub_andamento.STAO_PCAO_DK, 'inner')
@@ -44,7 +49,7 @@ def alerta_nf30(options):
         withColumnRenamed('max(pcao_dt_andamento)', 'data_autuacao').\
         withColumnRenamed('vist_dk', 'id_vista')
 
-    vista_promotor = vista.join(promotor, vista.VIST_PESF_PESS_DK_RESP_ANDAM == promotor.PESF_PESS_DK, 'inner')
+    vista_promotor = vista.join(broadcast(promotor), vista.VIST_PESF_PESS_DK_RESP_ANDAM == promotor.PESF_PESS_DK, 'inner')
     doc_revisado = doc_autuado.join(vista_promotor, doc_autuado.docu_dk == vista.VIST_DOCU_DK, 'inner').\
         filter('id_vista != vist_dk').\
         filter('data_autuacao < vist_dt_abertura_vista').\

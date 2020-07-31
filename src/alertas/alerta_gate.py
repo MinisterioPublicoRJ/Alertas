@@ -25,13 +25,15 @@ pre_columns = [
 
 
 def alerta_gate(options):
-    documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    documento = spark.sql("from documento")
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
+    # vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
+    vista = spark.sql("from vista")
     instrucao = spark.table('%s.gate_info_tecnica' % options['schema_exadata'])
 
-    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
-    doc_instrucao = doc_classe.join(instrucao, documento.DOCU_DK == instrucao.ITCN_DOCU_DK, 'inner')
+    doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_instrucao = doc_classe.join(broadcast(instrucao), documento.DOCU_DK == instrucao.ITCN_DOCU_DK, 'inner')
     doc_vista = doc_instrucao.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'left')
 
     doc_sem_vista = doc_vista.filter('vist_dk is null')
