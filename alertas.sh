@@ -10,9 +10,15 @@ spark-submit --master yarn --deploy-mode cluster \
     --conf spark.executor.memoryOverhead=6g \
     --conf spark.driver.memoryOverhead=2g \
     --conf spark.driver.maxResultSize=5g \
+    --conf spark.default.parallelism=100 \
+    --conf spark.sql.shuffle.partitions=100 \
     --conf spark.network.timeout=3600 \
     --conf spark.locality.wait=0 \
-    --conf spark.shuffle.io.maxRetries=5 \
-    --conf spark.shuffle.io.retryWait=15s \
+    --conf spark.shuffle.file.buffer=1024k \
+    --conf spark.io.compression.lz4.blockSize=512k \
+    --conf spark.maxRemoteBlockSizeFetchToMem=1500m \
+    --conf spark.reducer.maxReqsInFlight=1 \
+    --conf spark.shuffle.io.maxRetries=10 \
+    --conf spark.shuffle.io.retryWait=60s \
     --conf "spark.executor.extraJavaOptions=-XX:+UseG1GC -XX:InitiatingHeapOccupancyPercent=35" \
     --py-files src/alertas/*.py,packages/*.egg,packages/*.whl,packages/*.zip src/alertas/main.py $@

@@ -23,16 +23,18 @@ recursos = [
 ]
 
 def alerta_dt2i(options):
-    documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    documento = spark.sql("from documento")
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
+    # vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
+    vista = spark.sql("from vista")
     andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata'])
     sub_andamento = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata'])
 
     adt_ciencia = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).filter(col('stao_tppr_dk').isin(ciencias))
     adt_recurso = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).filter(col('stao_tppr_dk').isin(recursos))
 
-    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     doc_vista = doc_classe.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'inner')
     doc_andamento = doc_vista.join(andamento, doc_vista.VIST_DK == andamento.PCAO_VIST_DK, 'inner')
     doc_recente = doc_andamento.withColumn(

@@ -15,12 +15,14 @@ columns = [
 ]
 
 def alerta_dord(options):
-    documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    #documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    documento = spark.sql("from documento")
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
+    # vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
+    vista = spark.sql("from vista")
     andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata']).filter('pcao_tpsa_dk = 2')
    
-    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     doc_vista = doc_classe.join(vista, vista.VIST_DOCU_DK == documento.DOCU_DK)
     doc_andamento = doc_vista.join(andamento, doc_vista.VIST_DK == andamento.PCAO_VIST_DK)
     last_andamento = doc_andamento.select(['docu_dk', 'pcao_dt_andamento']).\

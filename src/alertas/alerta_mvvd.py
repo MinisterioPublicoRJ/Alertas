@@ -29,30 +29,40 @@ def alerta_mvvd(options):
     pers_vitima = spark.table('%s.mcpr_personagem' % options['schema_exadata']).filter('pers_tppe_dk = 3 or pers_tppe_dk = 290')
     pessoa_vitima = pessoa.join(pers_vitima, pessoa.PESF_PESS_DK == pers_vitima.PERS_PESS_DK, 'inner')
     
-    doc_agressao = spark.table('%s.mcpr_documento' % options['schema_exadata']).filter('docu_mate_dk = 43')
+    # doc_agressao = spark.table('%s.mcpr_documento' % options['schema_exadata']).filter('docu_mate_dk = 43')
+    doc_agressao = spark.sql("from documento").filter('docu_mate_dk = 43')
     vitimas_passadas = pessoa_vitima\
         .join(doc_agressao, pessoa_vitima.PERS_DOCU_DK == doc_agressao.DOCU_DK, 'inner')\
         .select(col_vict)
  
-    documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])\
+    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])\
+    #     .filter(datediff(current_date(), 'docu_dt_cadastro') <= 30)\
+    #     .filter('docu_mate_dk = 43')
+    documento = spark.sql("from documento")\
         .filter(datediff(current_date(), 'docu_dt_cadastro') <= 30)\
         .filter('docu_mate_dk = 43')
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    doc_classe = documento.join(classe, documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     doc_vitima = pessoa_vitima.join(doc_classe, pessoa_vitima.PERS_DOCU_DK == doc_classe.DOCU_DK, 'inner')
 
     vitimas_passadas.registerTempTable('vitimas_passadas')
     doc_vitima.registerTempTable('doc_vitima')
-    resultado = spark.sql("""SELECT * 
-        FROM doc_vitima d
-            JOIN vitimas_passadas v ON (
-                d.pesf_pess_dk = v.vict_pess_dk
-                OR d.pesf_cpf = v.vict_cpf
-                OR d.pesf_nr_rg = v.vict_rg
-                OR (d.pesf_nm_pessoa_fisica = v.vict_nome AND(
-                    d.pesf_nm_mae = v.vict_mae
-                    OR d.pesf_dt_nasc = v.vict_nasc
-                ))
-            )""")
+    resultado = spark.sql("""
+        SELECT * 
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_pess_dk = v.vict_pess_dk
+        UNION ALL
+        SELECT * 
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_cpf = v.vict_cpf
+        WHERE d.pesf_cpf != '00000000000'
+        UNION ALL
+        SELECT * 
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nr_rg = v.vict_rg
+        UNION ALL
+        SELECT * 
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nm_pessoa_fisica = v.vict_nome AND d.pesf_nm_mae = v.vict_mae
+        UNION ALL
+        SELECT * 
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nm_pessoa_fisica = v.vict_nome AND d.pesf_dt_nasc = v.vict_nasc
+    """)
 
     return resultado.select(columns)
