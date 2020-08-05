@@ -35,17 +35,17 @@ class AlertaSession:
         # 'DCTJ': ['Documentos criminais sem retorno do TJ a mais de 60 dias', alerta_dctj],
         # 'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
         # 'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
-        'GATE': ['Documentos com novas ITs do GATE', alerta_gate],
-        'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
-        'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
-        'OFFP': ['Ofício fora do prazo', alerta_offp],
-        'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi],
-        'PA1A': ['Procedimento Preparatório fora do prazo', alerta_pa1a],
-        'PPFP': ['PAs sem prorrogação por mais de um ano', alerta_ppfp],
+        # 'GATE': ['Documentos com novas ITs do GATE', alerta_gate],
+        # 'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
+        # 'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
+        # 'OFFP': ['Ofício fora do prazo', alerta_offp],
+        # 'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi],
+        # 'PA1A': ['Procedimento Preparatório fora do prazo', alerta_pa1a],
+        # 'PPFP': ['PAs sem prorrogação por mais de um ano', alerta_ppfp],
         'PRCR': ['Processo possivelmente prescrito', alerta_prcr],
-        'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf],
-        'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30],
-        'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
+        # 'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf],
+        # 'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30],
+        # 'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
@@ -86,15 +86,15 @@ class AlertaSession:
     def generateAlertas(self):
         print('Verificando alertas existentes em {0}'.format(datetime.today()))
         with Timer():
-            spark.table('%s.mcpr_documento' % self.options['schema_exadata']) \
-                .createOrReplaceTempView("documento")
-            spark.catalog.cacheTable("documento")
-            spark.sql("from documento").count()
+            #spark.table('%s.mcpr_documento' % self.options['schema_exadata']) \
+            #    .createOrReplaceTempView("documento")
+            #spark.catalog.cacheTable("documento")
+            #spark.sql("from documento").count()
 
-            spark.table('%s.mcpr_vista' % self.options['schema_exadata']) \
-                .createOrReplaceTempView("vista")
-            spark.catalog.cacheTable("vista")
-            spark.sql("from vista").count()
+            #spark.table('%s.mcpr_vista' % self.options['schema_exadata']) \
+            #    .createOrReplaceTempView("vista")
+            #spark.catalog.cacheTable("vista")
+            #spark.sql("from vista").count()
 
             for alerta, (desc, func) in self.alerta_list.items():
                 self.generateAlerta(alerta, desc, func)
@@ -111,7 +111,7 @@ class AlertaSession:
                 withColumn('alrt_session', lit(self.session_id).cast(StringType())).\
                 withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
 
-            table_name = "temp_mmps_alertas"
+            table_name = "test_temp_mmps_alertas"
             dataframe.write.mode("append").saveAsTable(table_name)
 
     def check_table_exists(self, schema, table_name):
@@ -122,16 +122,16 @@ class AlertaSession:
     def write_dataframe(self):
         #print('Gravando alertas do tipo {0}'.format(self.alerta_list[alerta]))
         with Timer():
-            temp_table_df = spark.table("temp_mmps_alertas")
+            temp_table_df = spark.table("test_temp_mmps_alertas")
 
-            is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], "mmps_alertas")
-            table_name = '%s.mmps_alertas' % self.options['schema_exadata_aux']
+            is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], "test_mmps_alertas")
+            table_name = '%s.test_mmps_alertas' % self.options['schema_exadata_aux']
             if is_exists_table_alertas:
                 temp_table_df.repartition("dt_partition").write.mode("overwrite").insertInto(table_name, overwrite=True)
             else:
                 temp_table_df.repartition("dt_partition").write.partitionBy("dt_partition").saveAsTable(table_name)
             
-            spark.sql("drop table default.temp_mmps_alertas")
+            spark.sql("drop table default.test_temp_mmps_alertas")
 
             _update_impala_table(table_name, self.options['impala_host'], self.options['impala_port'])
 
