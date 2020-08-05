@@ -86,15 +86,15 @@ class AlertaSession:
     def generateAlertas(self):
         print('Verificando alertas existentes em {0}'.format(datetime.today()))
         with Timer():
-            #spark.table('%s.mcpr_documento' % self.options['schema_exadata']) \
-            #    .createOrReplaceTempView("documento")
-            #spark.catalog.cacheTable("documento")
-            #spark.sql("from documento").count()
+            spark.table('%s.mcpr_documento' % self.options['schema_exadata']) \
+                .createOrReplaceTempView("documento")
+            spark.catalog.cacheTable("documento")
+            spark.sql("from documento").count()
 
-            #spark.table('%s.mcpr_vista' % self.options['schema_exadata']) \
-            #    .createOrReplaceTempView("vista")
-            #spark.catalog.cacheTable("vista")
-            #spark.sql("from vista").count()
+            spark.table('%s.mcpr_vista' % self.options['schema_exadata']) \
+                .createOrReplaceTempView("vista")
+            spark.catalog.cacheTable("vista")
+            spark.sql("from vista").count()
 
             for alerta, (desc, func) in self.alerta_list.items():
                 self.generateAlerta(alerta, desc, func)
