@@ -5,7 +5,7 @@ spark-submit --master yarn --deploy-mode cluster \
     --num-executors 12 \
     --driver-memory 6g \
     --executor-cores 5 \
-    --executor-memory 10g \
+    --executor-memory 15g \
     --conf spark.debug.maxToStringFields=2000 \
     --conf spark.executor.memoryOverhead=6g \
     --conf spark.driver.memoryOverhead=2g \

@@ -17,28 +17,16 @@ columns = [
     col('elapsed').alias('alrt_dias_passados')
 ]
 
-
-def get_tempo_prescricao(max_pena):
-    # Alguém pode refatorar isso de forma inteligente?
-    if max_pena < 1:
-        return 3
-    elif max_pena < 2:
-        return 4
-    elif max_pena < 4:
-        return 8
-    elif max_pena < 8:
-        return 12
-    elif max_pena < 12:
-        return 16
-    else:
-        return 20
-
+groupby_cols = [
+    'alrt_docu_dk'
+]
 
 def alerta_prcr(options):
-    prescricao_udf = udf(lambda max_pena: get_tempo_prescricao(max_pena), IntegerType())
-
-    spark.sql("""
-        SELECT docu_dk, docu_nr_mp, docu_nr_externo, docu_tx_etiqueta, docu_dt_fato,
+    # data do fato será usada para a maioria dos cálculos
+    # Caso a data do fato seja NULL, ou seja maior que a data de cadastro, usar cadastro como data do fato
+    doc_pena = spark.sql("""
+        SELECT docu_dk, docu_nr_mp, docu_nr_externo, docu_tx_etiqueta,
+            CASE WHEN docu_dt_fato < docu_dt_cadastro THEN docu_dt_fato ELSE docu_dt_cadastro END as docu_dt_fato,
             docu_dt_cadastro, docu_orgi_orga_dk_responsavel, cldc_dk, cldc_ds_classe,
             cldc_ds_hierarquia, id, max_pena, nome_delito, multiplicador, abuso_menor
         FROM documento
@@ -49,54 +37,63 @@ def alerta_prcr(options):
         WHERE docu_tpst_dk != 11
         AND docu_fsdc_dk = 1
         AND docu_dt_cadastro >= '2010-01-01'
-        AND cod_pct IN (20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 200)
+        AND max_pena IS NOT NULL
     """.format(options['schema_exadata_aux'], options['schema_exadata'])
-    ).createOrReplaceTempView('DOC_PENA')
-
-    # Aplicar multiplicadores de pena
-    pena_fatores = spark.sql("""
-        SELECT docu_dk, EXP(SUM(LN(max_pena))) AS fator_pena
-        FROM DOC_PENA
-        WHERE multiplicador = 1
-        GROUP BY docu_dk
-        """).createOrReplaceTempView('PENA_FATORES')
+    )
+    doc_pena.createOrReplaceTempView('DOC_PENA')
+    
+    # Calcula tempos de prescrição a partir das penas máximas
+    # Caso um dos assuntos seja multiplicador, multiplicar as penas pelo fator
     doc_prescricao = spark.sql("""
-        SELECT 
-            P.*,
-            CASE WHEN fator_pena IS NOT NULL THEN max_pena * fator_pena ELSE max_pena END AS max_pena_fatorado
-        FROM DOC_PENA P
-        LEFT JOIN PENA_FATORES F ON F.docu_dk = P.docu_dk 
-        WHERE multiplicador = 0
-    """)
-    doc_prescricao = doc_prescricao.withColumn("tempo_prescricao", prescricao_udf(doc_prescricao.max_pena_fatorado))
-    doc_prescricao.createOrReplaceTempView('DOC_PRESCRICAO')
-
-    # Se o acusado tiver < 21 ou >= 70, multiplicar tempo_prescricao por 0.5
-    spark.sql("""
-        SELECT 
-            docu_dk,
-            0.5 AS fator_prescricao
+        WITH PENA_FATORES AS (
+            SELECT docu_dk, EXP(SUM(LN(max_pena))) AS fator_pena
+            FROM DOC_PENA
+            WHERE multiplicador = 1
+            GROUP BY docu_dk
+        )
+        SELECT *,
+            CASE
+                WHEN max_pena_fatorado < 1 THEN 3
+                WHEN max_pena_fatorado < 2 THEN 4
+                WHEN max_pena_fatorado < 4 THEN 8
+                WHEN max_pena_fatorado < 8 THEN 12
+                WHEN max_pena_fatorado < 12 THEN 16
+                ELSE 20 END AS tempo_prescricao
         FROM (
             SELECT 
-                docu_dk,
-                add_months(pesf_dt_nasc, 21 * 12) AS dt_21,
-                add_months(pesf_dt_nasc, 70 * 12) AS dt_70,
-                CASE WHEN docu_dt_fato IS NOT NULL THEN docu_dt_fato ELSE docu_dt_cadastro END AS dt_compare
-            FROM DOC_PRESCRICAO
-            JOIN {0}.mcpr_personagem ON pers_docu_dk = docu_dk
-            JOIN {0}.mcpr_pessoa_fisica ON pers_pesf_dk = pesf_pess_dk
-            WHERE pers_tppe_dk IN (290, 7, 21, 317, 20, 14, 32, 345, 40, 5)
-            ) t
-        WHERE NOT (dt_compare >= dt_21 AND dt_compare < dt_70)
-        GROUP BY docu_dk
-    """.format(options['schema_exadata'])).createOrReplaceTempView('PRESCRICAO_FATORES')
+                P.*,
+                CASE WHEN fator_pena IS NOT NULL THEN max_pena * fator_pena ELSE max_pena END AS max_pena_fatorado
+            FROM DOC_PENA P
+            LEFT JOIN PENA_FATORES F ON F.docu_dk = P.docu_dk 
+            WHERE multiplicador = 0
+        ) t
+    """)
+    doc_prescricao.createOrReplaceTempView('DOC_PRESCRICAO')
 
-    doc_prescricao = spark.sql("""
+    # Se o acusado tiver < 21 ou >= 70, seja na data do fato ou na data presente, multiplicar tempo_prescricao por 0.5
+    doc_prescricao_fatorado = spark.sql("""
+        WITH PRESCRICAO_FATORES AS (
+            SELECT docu_dk, 0.5 AS fator_prescricao
+            FROM (
+                SELECT 
+                    docu_dk,
+                    add_months(pesf_dt_nasc, 21 * 12) AS dt_21,
+                    add_months(pesf_dt_nasc, 70 * 12) AS dt_70,
+                    docu_dt_fato AS dt_compare
+                FROM DOC_PRESCRICAO
+                JOIN {0}.mcpr_personagem ON pers_docu_dk = docu_dk
+                JOIN {0}.mcpr_pessoa_fisica ON pers_pesf_dk = pesf_pess_dk
+                WHERE pers_tppe_dk IN (290, 7, 21, 317, 20, 14, 32, 345, 40, 5)
+                ) t
+            WHERE NOT (dt_compare >= dt_21 AND current_timestamp() < dt_70)
+            GROUP BY docu_dk
+        )
         SELECT P.*,
         CASE WHEN fator_prescricao IS NOT NULL THEN tempo_prescricao * fator_prescricao ELSE tempo_prescricao END AS tempo_prescricao_fatorado
         FROM DOC_PRESCRICAO P
         LEFT JOIN PRESCRICAO_FATORES F ON F.docu_dk = P.docu_dk
-    """).createOrReplaceTempView('DOC_PRESCRICAO_FATORADO')
+    """.format(options['schema_exadata']))
+    doc_prescricao_fatorado.createOrReplaceTempView('DOC_PRESCRICAO_FATORADO')
 
     # Calcular data inicial de prescrição
 
@@ -107,68 +104,51 @@ def alerta_prcr(options):
         JOIN {0}.mcpr_andamento ON vist_dk = pcao_vist_dk
         JOIN {0}.mcpr_sub_andamento ON stao_pcao_dk = pcao_dk
         WHERE stao_tppr_dk = 7920
+        AND year_month >= 201901
     """.format(options['schema_exadata'])
     ).createOrReplaceTempView('DOCS_ANPP')
 
     # Casos de abuso de menor, data inicial é a data de 18 anos do menor,
     # no caso em que o menor tinha menos de 18 na data do fato/cadastro
-    spark.sql("""
-        SELECT docu_dk,
-            CASE 
-                WHEN docu_dt_fato IS NOT NULL AND dt_18_anos > docu_dt_fato THEN dt_18_anos
-                WHEN docu_dt_fato IS NULL AND dt_18_anos > docu_dt_cadastro THEN dt_18_anos
-                ELSE NULL END AS dt_18_anos
-        FROM DOC_PRESCRICAO_FATORADO P
-        JOIN {0}.mcpr_personagem ON pers_docu_dk = docu_dk
-        JOIN (
-            SELECT 
-                *,
-                add_months(pesf_dt_nasc, 18*12) AS dt_18_anos
-            FROM {0}.mcpr_pessoa_fisica
-            ) t ON pers_pesf_dk = pesf_pess_dk
-        WHERE abuso_menor = 1
-        AND pers_tppe_dk IN (3, 13)
-    """.format(options['schema_exadata'])
-    ).createOrReplaceTempView('DOCS_ABUSO_MENOR')
 
-    # Prioridade de data inicial: data de 18 anos (caso abuso menor), rescisão de acordo ANPP, dt_fato, dt_cadastro
-    spark.sql("""
+    # Prioridade de data inicial: data de 18 anos (caso abuso menor), rescisão de acordo ANPP, dt_fato
+    dt_inicial = spark.sql("""
+        WITH DOCS_ABUSO_MENOR AS (
+            SELECT docu_dk,
+                CASE WHEN dt_18_anos > docu_dt_fato THEN dt_18_anos ELSE NULL END AS dt_18_anos
+            FROM DOC_PRESCRICAO_FATORADO P
+            JOIN {0}.mcpr_personagem ON pers_docu_dk = docu_dk
+            JOIN (
+                SELECT 
+                    PF.*,
+                    add_months(pesf_dt_nasc, 18*12) AS dt_18_anos
+                FROM {0}.mcpr_pessoa_fisica PF
+                ) t ON pers_pesf_dk = pesf_pess_dk
+            WHERE abuso_menor = 1
+            AND pers_tppe_dk IN (3, 13, 18, 6, 248, 290)
+        )
         SELECT P.*,
             CASE 
                 WHEN dt_18_anos IS NOT NULL THEN dt_18_anos
-                WHEN pcao_dt_andamento IS NOT NULL THEN pcao_dt_andamento
-                WHEN docu_dt_fato IS NOT NULL THEN docu_dt_fato 
-                ELSE docu_dt_cadastro END AS dt_inicial_prescricao
+                WHEN pcao_dt_andamento IS NOT NULL THEN pcao_dt_andamento 
+                ELSE docu_dt_fato END AS dt_inicial_prescricao
         FROM DOC_PRESCRICAO_FATORADO P
         LEFT JOIN DOCS_ANPP ON vist_docu_dk = docu_dk
         LEFT JOIN DOCS_ABUSO_MENOR M ON M.docu_dk = P.docu_dk
-    """.format(options['schema_exadata'])).createOrReplaceTempView('DOCS_DT_INICIAL_PRESCRICAO')
+    """.format(options['schema_exadata']))
+    dt_inicial.createOrReplaceTempView('DOCS_DT_INICIAL_PRESCRICAO')
 
     # Data de prescrição = data inicial de prescrição + tempo de prescrição
     resultado = spark.sql("""
         SELECT
-            *,
-            add_months(dt_inicial_prescricao, tempo_prescricao_fatorado * 12) AS data_prescricao
-        FROM DOCS_DT_INICIAL_PRESCRICAO
+            D.*,
+            cast(add_months(dt_inicial_prescricao, tempo_prescricao_fatorado * 12) as timestamp) AS data_prescricao
+        FROM DOCS_DT_INICIAL_PRESCRICAO D
     """).\
-    withColumn("elapsed", lit(datediff(current_date(), 'data_prescricao')).cast(IntegerType()))
-    resultado.createOrReplaceTempView('RESULTADO')
-    
-    # table_name_teste = "test_alerta_PRCR"
-    # resultado.write.mode("overwrite").saveAsTable(table_name_teste)
-    # resultado.count()
-    resultado = spark.sql("""
-        SELECT docu_dk, docu_nr_mp, docu_nr_externo, docu_tx_etiqueta, cldc_ds_classe,
-        docu_dt_cadastro, docu_orgi_orga_dk_responsavel, cldc_ds_hierarquia, elapsed 
-        FROM RESULTADO
-        WHERE elapsed > 0
-        GROUP BY docu_dk, docu_nr_mp, docu_nr_externo, docu_tx_etiqueta, cldc_ds_classe,
-        docu_dt_cadastro, docu_orgi_orga_dk_responsavel, cldc_ds_hierarquia, elapsed
-    """)
+        withColumn("elapsed", lit(datediff(current_date(), 'data_prescricao')).cast(IntegerType()))
 
-    #resultado = resultado.filter('elapsed > 0').select(columns).distinct()
-    resultado.count()
-
+    resultado = resultado.filter('elapsed > 0').\
+        groupBy(columns[:-1]).agg({'elapsed': 'max'}).\
+        withColumnRenamed('max(elapsed)', 'alrt_dias_passados')
     return resultado
-    # Falta o group by para definir qual pena causa a prescrição em processos com multiplos crimes.
-    # No momento, o processo está prescrevendo várias vezes.
+
