@@ -26,6 +26,7 @@ from alerta_offp import alerta_offp
 from alerta_ouvi import alerta_ouvi
 from alerta_pa1a import alerta_pa1a
 from alerta_ppfp import alerta_ppfp
+from alerta_prcr import alerta_prcr
 from alerta_vadf import alerta_vadf
 
 
@@ -41,6 +42,7 @@ class AlertaSession:
         'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi],
         'PA1A': ['Procedimento Preparatório fora do prazo', alerta_pa1a],
         'PPFP': ['PAs sem prorrogação por mais de um ano', alerta_ppfp],
+        'PRCR': ['Processo possivelmente prescrito', alerta_prcr],
         'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf],
         'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30],
         'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
@@ -97,7 +99,7 @@ class AlertaSession:
             for alerta, (desc, func) in self.alerta_list.items():
                 self.generateAlerta(alerta, desc, func)
             self.write_dataframe()
-            # self.wrapAlertas()
+            self.wrapAlertas()
 
     def generateAlerta(self, alerta, desc, func):
         print('Verificando alertas do tipo: {0}'.format(alerta))
