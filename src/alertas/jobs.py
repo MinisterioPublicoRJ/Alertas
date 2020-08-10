@@ -51,6 +51,10 @@ class AlertaSession:
     STATUS_FINISHED = "FINISHED"
     STATUS_ERROR = "ERROR"
 
+    TEMP_TABLE_NAME = "temp_mmps_alertas"
+    FINAL_TABLE_NAME = "mmps_alertas"
+    SESSION_TABLE_NAME = "mmps_alerta_sessao"
+
     def __init__(self, options):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
         spark.conf.set("spark.sql.autoBroadcastJoinThreshold", -1)
@@ -81,7 +85,9 @@ class AlertaSession:
         
         session_df = spark.createDataFrame(data, schema)
         session_df = session_df.withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
-        session_df.coalesce(1).write.format('parquet').saveAsTable('%s.mmps_alerta_sessao' % self.options['schema_exadata_aux'], mode='append')
+        session_df.coalesce(1).write.format('parquet').saveAsTable(
+            '{0}.{1}'.format(self.options['schema_exadata_aux'], self.SESSION_TABLE_NAME),
+            mode='append')
             
     def generateAlertas(self):
         print('Verificando alertas existentes em {0}'.format(datetime.today()))
@@ -111,8 +117,7 @@ class AlertaSession:
                 withColumn('alrt_session', lit(self.session_id).cast(StringType())).\
                 withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
 
-            table_name = "temp_mmps_alertas"
-            dataframe.write.mode("append").saveAsTable(table_name)
+            dataframe.write.mode("append").saveAsTable(self.TEMP_TABLE_NAME)
 
     def check_table_exists(self, schema, table_name):
         spark.sql("use %s" % schema)
@@ -122,16 +127,16 @@ class AlertaSession:
     def write_dataframe(self):
         #print('Gravando alertas do tipo {0}'.format(self.alerta_list[alerta]))
         with Timer():
-            temp_table_df = spark.table("temp_mmps_alertas")
+            temp_table_df = spark.table(self.TEMP_TABLE_NAME)
 
-            is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], "mmps_alertas")
-            table_name = '%s.mmps_alertas' % self.options['schema_exadata_aux']
+            is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
+            table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
             if is_exists_table_alertas:
                 temp_table_df.repartition("dt_partition").write.mode("overwrite").insertInto(table_name, overwrite=True)
             else:
                 temp_table_df.repartition("dt_partition").write.partitionBy("dt_partition").saveAsTable(table_name)
             
-            spark.sql("drop table default.temp_mmps_alertas")
+            spark.sql("drop table default.{0}".format(self.TEMP_TABLE_NAME))
 
             _update_impala_table(table_name, self.options['impala_host'], self.options['impala_port'])
 
