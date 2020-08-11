@@ -29,15 +29,13 @@ def alerta_mvvd(options):
     pers_vitima = spark.table('%s.mcpr_personagem' % options['schema_exadata']).filter('pers_tppe_dk = 3 or pers_tppe_dk = 290')
     pessoa_vitima = pessoa.join(pers_vitima, pessoa.PESF_PESS_DK == pers_vitima.PERS_PESS_DK, 'inner')
     
-    # doc_agressao = spark.table('%s.mcpr_documento' % options['schema_exadata']).filter('docu_mate_dk = 43')
-    doc_agressao = spark.sql("from documento").filter('docu_mate_dk = 43')
+    doc_agressao = spark.sql("from documento")\
+        .filter('docu_mate_dk = 43')\
+        .filter(datediff(current_date(), 'docu_dt_cadastro') > 30)
     vitimas_passadas = pessoa_vitima\
         .join(doc_agressao, pessoa_vitima.PERS_DOCU_DK == doc_agressao.DOCU_DK, 'inner')\
         .select(col_vict)
  
-    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])\
-    #     .filter(datediff(current_date(), 'docu_dt_cadastro') <= 30)\
-    #     .filter('docu_mate_dk = 43')
     documento = spark.sql("from documento")\
         .filter(datediff(current_date(), 'docu_dt_cadastro') <= 30)\
         .filter('docu_mate_dk = 43')
@@ -65,4 +63,4 @@ def alerta_mvvd(options):
         FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nm_pessoa_fisica = v.vict_nome AND d.pesf_dt_nasc = v.vict_nasc
     """)
 
-    return resultado.select(columns)
+    return resultado.select(columns).distinct()
