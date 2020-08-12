@@ -17,14 +17,10 @@ columns = [
 ]
 
 def alerta_offp(options):
-    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
-    #     filter('docu_tpst_dk != 11').\
-    #     filter('docu_fsdc_dk = 1')
     documento = spark.sql("from documento").\
         filter('docu_tpst_dk != 11').\
         filter('docu_fsdc_dk = 1')
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    # vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
     vista = spark.sql("from vista")
     andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata']).\
         filter('pcao_dt_cancelamento IS NULL')
