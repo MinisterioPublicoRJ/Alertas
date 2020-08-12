@@ -6,7 +6,7 @@ from base import spark
 
 
 aut_col = [
-    'docu_dk', 'docu_nr_mp', 'docu_nr_externo', 'docu_tx_etiqueta', 'vist_dk',
+    'docu_dk', 'docu_nr_mp', 'docu_nr_externo', 'docu_tx_etiqueta',
     'docu_orgi_orga_dk_responsavel', 'cldc_ds_classe', 'cldc_ds_hierarquia'
 ]
 
@@ -23,20 +23,16 @@ columns = [
 ]
 
 def alerta_nf30(options):
-    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
-    #     filter('docu_tpst_dk != 11').\
-    #     filter('docu_fsdc_dk = 1').\
-    #     filter('docu_cldc_dk = 393')
     documento = spark.sql("from documento").\
         filter('docu_tpst_dk != 11').\
         filter('docu_fsdc_dk = 1').\
         filter('docu_cldc_dk = 393')
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    # vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
     vista = spark.sql("from vista")
     promotor = spark.table('%s.rh_funcionario' % options['schema_exadata']).\
         filter('cdtipfunc = 1')
-    andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata'])
+    andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata']).\
+        filter('pcao_dt_cancelamento IS NULL')
     sub_andamento = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).\
         filter('stao_tppr_dk in (6034, 6631, 7751, 7752)')
     
@@ -46,12 +42,10 @@ def alerta_nf30(options):
     doc_sub_andamento = doc_andamento.join(sub_andamento, doc_andamento.PCAO_DK == sub_andamento.STAO_PCAO_DK, 'inner')
     doc_autuado = doc_sub_andamento.\
         groupBy(aut_col).agg({'pcao_dt_andamento': 'max'}).\
-        withColumnRenamed('max(pcao_dt_andamento)', 'data_autuacao').\
-        withColumnRenamed('vist_dk', 'id_vista')
+        withColumnRenamed('max(pcao_dt_andamento)', 'data_autuacao')
 
     vista_promotor = vista.join(broadcast(promotor), vista.VIST_PESF_PESS_DK_RESP_ANDAM == promotor.PESF_PESS_DK, 'inner')
     doc_revisado = doc_autuado.join(vista_promotor, doc_autuado.docu_dk == vista.VIST_DOCU_DK, 'inner').\
-        filter('id_vista != vist_dk').\
         filter('data_autuacao < vist_dt_abertura_vista').\
         withColumnRenamed('docu_dk', 'reviewed_docu_dk').select(['reviewed_docu_dk'])
     
