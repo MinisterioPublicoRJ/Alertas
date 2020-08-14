@@ -25,21 +25,21 @@ pre_columns = [
 
 
 def alerta_gate(options):
-    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
+    # possivel filter nos documentos?
     documento = spark.sql("from documento")
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    # vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
-    vista = spark.sql("from vista")
+    vista = spark.sql("select VIST_DOCU_DK, max(VIST_DT_ABERTURA_VISTA) as DT_MAX_VISTA from vista group by VIST_DOCU_DK")
     instrucao = spark.table('%s.gate_info_tecnica' % options['schema_exadata'])
 
     doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
-    doc_instrucao = doc_classe.join(broadcast(instrucao), documento.DOCU_DK == instrucao.ITCN_DOCU_DK, 'inner')
-    doc_vista = doc_instrucao.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'left')
+    doc_instrucao = doc_classe.join(broadcast(instrucao), doc_classe.DOCU_DK == instrucao.ITCN_DOCU_DK, 'inner')
+    doc_vista = doc_instrucao.join(vista, doc_instrucao.DOCU_DK == vista.VIST_DOCU_DK, 'left')
 
-    doc_sem_vista = doc_vista.filter('vist_dk is null')
-    doc_vista_anterior = doc_vista.filter(datediff('ITCN_DT_CADASTRO', 'vist_dt_abertura_vista') <= 1)
+    doc_sem_vista = doc_vista.filter('DT_MAX_VISTA is null')
+    doc_vista_anterior = doc_vista.filter('ITCN_DT_CADASTRO > DT_MAX_VISTA')
     doc_inst_recente = doc_sem_vista.union(doc_vista_anterior)
 
+    # Caso haja mais de uma instrução maior que a data de vísta máxima, pega a que foi ativada primeiro
     resultado = doc_inst_recente.groupBy(pre_columns).agg({'ITCN_DT_CADASTRO': 'min'}).\
         withColumnRenamed('min(ITCN_DT_CADASTRO)', 'dt_it').\
         withColumn('elapsed', lit(datediff(current_date(), 'dt_it')).cast(IntegerType()))
