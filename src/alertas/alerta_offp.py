@@ -35,6 +35,7 @@ def alerta_offp(options):
         withColumn('elapsed', lit(datediff(current_date(), 'dt_fim_prazo')).cast(IntegerType()))
 
     # Pode ter mais de um andamento de oficio
+    # Nesse caso, consideramos o andamento mais antigo
     resultado = doc_sub_andamento.filter('elapsed > 0').\
         groupBy(columns[:-1]).agg({'elapsed': 'max'}).\
         withColumnRenamed('max(elapsed)', 'alrt_dias_passados')

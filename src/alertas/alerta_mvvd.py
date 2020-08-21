@@ -30,8 +30,7 @@ def alerta_mvvd(options):
     pessoa_vitima = pessoa.join(pers_vitima, pessoa.PESF_PESS_DK == pers_vitima.PERS_PESS_DK, 'inner')
     
     doc_agressao = spark.sql("from documento")\
-        .filter('docu_mate_dk = 43')\
-        .filter(datediff(current_date(), 'docu_dt_cadastro') > 30)
+        .filter('docu_mate_dk = 43')
     vitimas_passadas = pessoa_vitima\
         .join(doc_agressao, pessoa_vitima.PERS_DOCU_DK == doc_agressao.DOCU_DK, 'inner')\
         .select(col_vict)
@@ -47,20 +46,20 @@ def alerta_mvvd(options):
     doc_vitima.registerTempTable('doc_vitima')
     resultado = spark.sql("""
         SELECT * 
-        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_pess_dk = v.vict_pess_dk
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_pess_dk = v.vict_pess_dk AND v.vict_docu_dk != d.docu_dk
         UNION ALL
         SELECT * 
-        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_cpf = v.vict_cpf
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_cpf = v.vict_cpf AND v.vict_docu_dk != d.docu_dk
         WHERE d.pesf_cpf != '00000000000'
         UNION ALL
         SELECT * 
-        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nr_rg = v.vict_rg
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nr_rg = v.vict_rg AND v.vict_docu_dk != d.docu_dk
         UNION ALL
         SELECT * 
-        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nm_pessoa_fisica = v.vict_nome AND d.pesf_nm_mae = v.vict_mae
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nm_pessoa_fisica = v.vict_nome AND d.pesf_nm_mae = v.vict_mae AND v.vict_docu_dk != d.docu_dk
         UNION ALL
         SELECT * 
-        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nm_pessoa_fisica = v.vict_nome AND d.pesf_dt_nasc = v.vict_nasc
+        FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nm_pessoa_fisica = v.vict_nome AND d.pesf_dt_nasc = v.vict_nasc AND v.vict_docu_dk != d.docu_dk
     """)
 
     return resultado.select(columns).distinct()
