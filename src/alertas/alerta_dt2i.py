@@ -23,13 +23,11 @@ recursos = [
 ]
 
 def alerta_dt2i(options):
-    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
     documento = spark.sql("from documento")
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    # vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
     vista = spark.sql("from vista")
-    andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata'])
-    sub_andamento = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata'])
+    andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata']).\
+        filter('pcao_dt_cancelamento IS NULL')
 
     adt_ciencia = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).filter(col('stao_tppr_dk').isin(ciencias))
     adt_recurso = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).filter(col('stao_tppr_dk').isin(recursos))

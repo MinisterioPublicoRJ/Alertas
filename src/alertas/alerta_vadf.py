@@ -16,10 +16,8 @@ columns = [
 ]
 
 def alerta_vadf(options):
-    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata'])
     documento = spark.sql("from documento")
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    # vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
     vista = spark.sql("from vista")
    
     doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
