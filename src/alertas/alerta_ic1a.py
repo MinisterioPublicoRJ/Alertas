@@ -21,10 +21,6 @@ columns = [
 ]
 
 def alerta_ic1a(options):
-    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
-    #     filter('docu_tpst_dk != 11').\
-    #     filter('docu_fsdc_dk = 1').\
-    #     filter("docu_cldc_dk = 392")
     documento = spark.sql("from documento").\
         filter('docu_tpst_dk != 11').\
         filter('docu_fsdc_dk = 1').\
@@ -32,20 +28,20 @@ def alerta_ic1a(options):
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
     apenso = spark.table('%s.mcpr_correlacionamento' % options['schema_exadata']).\
         filter('corr_tpco_dk in (2, 6)')
-    # vista = spark.table('%s.mcpr_vista' % options['schema_exadata'])
     vista = spark.sql("from vista")
-    andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata'])
+    andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata']).\
+        filter('pcao_dt_cancelamento IS NULL')
     sub_andamento = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).\
         filter('stao_tppr_dk in (6012, 6002, 6511, 6291)')
    
     doc_apenso = documento.join(apenso, documento.DOCU_DK == apenso.CORR_DOCU_DK2, 'left').\
         filter('corr_tpco_dk is null')
-    doc_classe = documento.join(broadcast(classe), doc_apenso.DOCU_CLDC_DK == classe.cldc_dk, 'left')
-    doc_vista = doc_classe.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'left')
-    doc_andamento = doc_vista.join(andamento, doc_vista.VIST_DK == andamento.PCAO_VIST_DK, 'left')
-    doc_sub_andamento = doc_andamento.join(sub_andamento, doc_andamento.PCAO_DK == sub_andamento.STAO_PCAO_DK, 'left')
+    doc_classe = doc_apenso.join(broadcast(classe), doc_apenso.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_vista = doc_classe.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'inner')
+    doc_andamento = doc_vista.join(andamento, doc_vista.VIST_DK == andamento.PCAO_VIST_DK, 'inner')
+    doc_sub_andamento = doc_andamento.join(sub_andamento, doc_andamento.PCAO_DK == sub_andamento.STAO_PCAO_DK, 'inner')
     
-    doc_eventos = doc_sub_andamento.filter('stao_dk is not null').\
+    doc_eventos = doc_sub_andamento.\
         groupBy(proto_columns).agg({'pcao_dt_andamento': 'max'}).\
         withColumnRenamed('max(pcao_dt_andamento)', 'last_date')
 
