@@ -38,7 +38,7 @@ class AlertaSession:
         'GATE': ['Documentos com novas ITs do GATE', alerta_gate],
         'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
         'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
-        'OFFP': ['Ofício fora do prazo', alerta_offp],
+        # 'OFFP': ['Ofício fora do prazo', alerta_offp],
         'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi],
         'PA1A': ['Procedimento Preparatório fora do prazo', alerta_pa1a],
         'PPFP': ['PAs sem prorrogação por mais de um ano', alerta_ppfp],
