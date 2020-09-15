@@ -51,9 +51,9 @@ class AlertaSession:
     STATUS_FINISHED = "FINISHED"
     STATUS_ERROR = "ERROR"
 
-    TEMP_TABLE_NAME = "temp_mmps_alertas"
-    FINAL_TABLE_NAME = "mmps_alertas"
-    SESSION_TABLE_NAME = "mmps_alerta_sessao"
+    TEMP_TABLE_NAME = "teste_temp_mmps_alertas"
+    FINAL_TABLE_NAME = "teste_mmps_alertas"
+    SESSION_TABLE_NAME = "teste_mmps_alerta_sessao"
 
     def __init__(self, options):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
@@ -128,8 +128,8 @@ class AlertaSession:
     def write_dataframe(self, dataframe=None):
         #print('Gravando alertas do tipo {0}'.format(self.alerta_list[alerta]))
         with Timer():
-            table = dataframe if dataframe else self.TEMP_TABLE_NAME
-            temp_table_df = spark.table(table)
+            table = dataframe if dataframe else self.FINAL_TABLE_NAME
+            temp_table_df = spark.table(self.TEMP_TABLE_NAME)
 
             is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], table)
             table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], table)
@@ -138,7 +138,7 @@ class AlertaSession:
             else:
                 temp_table_df.repartition("dt_partition").write.partitionBy("dt_partition").saveAsTable(table_name)
             
-            spark.sql("drop table default.{0}".format(table))
+            spark.sql("drop table default.{0}".format(self.TEMP_TABLE_NAME))
 
             _update_impala_table(table_name, self.options['impala_host'], self.options['impala_port'])
 
