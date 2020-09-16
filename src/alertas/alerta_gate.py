@@ -32,6 +32,7 @@ def alerta_gate(options):
 
     doc_sem_vista = doc_vista.filter('DT_MAX_VISTA is null')
     doc_vista_anterior = doc_vista.filter('ITCN_DT_CADASTRO > DT_MAX_VISTA')
-    resultado = doc_sem_vista.union(doc_vista_anterior)
+    resultado = doc_sem_vista.union(doc_vista_anterior).\
+        withColumn('elapsed', lit(datediff(current_date(), 'ITCN_DT_CADASTRO')).cast(IntegerType()))
 
     return resultado.select(columns)
