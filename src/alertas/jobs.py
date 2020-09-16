@@ -51,9 +51,9 @@ class AlertaSession:
     STATUS_FINISHED = "FINISHED"
     STATUS_ERROR = "ERROR"
 
-    TEMP_TABLE_NAME = "teste_temp_mmps_alertas"
-    FINAL_TABLE_NAME = "teste_mmps_alertas"
-    SESSION_TABLE_NAME = "teste_mmps_alerta_sessao"
+    TEMP_TABLE_NAME = "temp_mmps_alertas"
+    FINAL_TABLE_NAME = "mmps_alertas"
+    SESSION_TABLE_NAME = "mmps_alerta_sessao"
 
     def __init__(self, options):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
