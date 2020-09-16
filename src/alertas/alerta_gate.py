@@ -12,7 +12,7 @@ columns = [
     col('docu_nr_externo').alias('alrt_docu_nr_externo'), 
     col('docu_tx_etiqueta').alias('alrt_docu_etiqueta'), 
     col('cldc_ds_classe').alias('alrt_docu_classe'),
-    col('dt_it').alias('alrt_docu_date'),  
+    col('itcn_dt_cadastro').alias('alrt_docu_date'),  
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
     col('elapsed').alias('alrt_dias_passados'),
