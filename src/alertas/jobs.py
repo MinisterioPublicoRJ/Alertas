@@ -32,20 +32,20 @@ from alerta_vadf import alerta_vadf
 
 class AlertaSession:
     alerta_list = {
-        # 'DCTJ': ['Documentos criminais sem retorno do TJ a mais de 60 dias', alerta_dctj, None],
-        # 'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj, None],
-        # 'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord], None,
-        'GATE': ['Documentos com novas ITs do GATE', alerta_gate, 'MMPS_ALERTA_GATE'],
-        'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a, None],
-        'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd, None],
-        'OFFP': ['Ofício fora do prazo', alerta_offp, None],
-        'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi, None],
-        'PA1A': ['PAs sem prorrogação por mais de um ano', alerta_pa1a, None],
-        'PPFP': ['Procedimento Preparatório fora do prazo', alerta_ppfp, None],
-        'PRCR': ['Processo possivelmente prescrito', alerta_prcr, None],
-        'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf, None],
-        'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30, None],
-        'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i, None],
+        # 'DCTJ': ['Documentos criminais sem retorno do TJ a mais de 60 dias', alerta_dctj],
+        # 'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
+        # 'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
+        'GATE': ['Documentos com novas ITs do GATE', alerta_gate],
+        'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
+        'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
+        'OFFP': ['Ofício fora do prazo', alerta_offp],
+        'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi],
+        'PA1A': ['PAs sem prorrogação por mais de um ano', alerta_pa1a],
+        'PPFP': ['Procedimento Preparatório fora do prazo', alerta_ppfp],
+        'PRCR': ['Processo possivelmente prescrito', alerta_prcr],
+        'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf],
+        'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30],
+        'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
@@ -102,9 +102,9 @@ class AlertaSession:
             spark.catalog.cacheTable("vista")
             spark.sql("from vista").count()
 
-            for alerta, (desc, func, custom_table) in self.alerta_list.items():
+            for alerta, (desc, func) in self.alerta_list.items():
                 self.generateAlerta(alerta, desc, func)
-            self.write_dataframe(dataframe=custom_table)
+            self.write_dataframe()
             self.wrapAlertas()
 
     def generateAlerta(self, alerta, desc, func):
@@ -125,14 +125,13 @@ class AlertaSession:
         result_table_check = spark.sql("SHOW TABLES LIKE '%s'" % table_name).count()
         return True if result_table_check > 0 else False
 
-    def write_dataframe(self, dataframe=None):
+    def write_dataframe(self):
         #print('Gravando alertas do tipo {0}'.format(self.alerta_list[alerta]))
         with Timer():
-            table = dataframe if dataframe else self.FINAL_TABLE_NAME
             temp_table_df = spark.table(self.TEMP_TABLE_NAME)
 
-            is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], table)
-            table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], table)
+            is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
+            table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
             if is_exists_table_alertas:
                 temp_table_df.repartition("dt_partition").write.mode("overwrite").insertInto(table_name, overwrite=True)
             else:
