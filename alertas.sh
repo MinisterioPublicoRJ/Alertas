@@ -1,6 +1,8 @@
 #!/bin/sh
 export PYTHONIOENCODING=utf8
 spark-submit --master yarn --deploy-mode cluster \
+    --keytab "/home/mpmapas/keytab/mpmapas.keytab" \
+    --principal mpmapas \
     --queue root.alertas \
     --num-executors 12 \
     --driver-memory 6g \
@@ -22,3 +24,7 @@ spark-submit --master yarn --deploy-mode cluster \
     --conf spark.shuffle.io.retryWait=60s \
     --conf "spark.executor.extraJavaOptions=-XX:+UseG1GC -XX:InitiatingHeapOccupancyPercent=35" \
     --py-files src/alertas/*.py,packages/*.egg,packages/*.whl,packages/*.zip src/alertas/main.py $@
+
+kinit -kt /home/mpmapas/keytab/mpmapas.keytab mpmapas
+impala-shell -q "INVALIDATE METADATA"
+kdestroy

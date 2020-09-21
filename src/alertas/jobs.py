@@ -13,7 +13,6 @@ from pyspark.sql.utils import AnalysisException
 from base import spark
 from pyspark.sql import DataFrame
 from timer import Timer
-from utils import _update_impala_table
 from alerta_dctj import alerta_dctj
 from alerta_dntj import alerta_dntj
 from alerta_dord import alerta_dord
@@ -137,7 +136,3 @@ class AlertaSession:
                 temp_table_df.repartition("dt_partition").write.partitionBy("dt_partition").saveAsTable(table_name)
             
             spark.sql("drop table default.{0}".format(self.TEMP_TABLE_NAME))
-
-            _update_impala_table(table_name, self.options['impala_host'], self.options['impala_port'])
-
-
