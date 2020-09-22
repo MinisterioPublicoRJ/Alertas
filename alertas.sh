@@ -25,6 +25,4 @@ spark-submit --master yarn --deploy-mode cluster \
     --conf "spark.executor.extraJavaOptions=-XX:+UseG1GC -XX:InitiatingHeapOccupancyPercent=35" \
     --py-files src/alertas/*.py,packages/*.egg,packages/*.whl,packages/*.zip src/alertas/main.py $@
 
-kinit -kt /home/mpmapas/keytab/mpmapas.keytab mpmapas
 impala-shell -q "INVALIDATE METADATA"
-kdestroy
