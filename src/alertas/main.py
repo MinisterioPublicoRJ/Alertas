@@ -1,9 +1,11 @@
 #-*-coding:utf-8-*-
+import os
 import base
 import argparse
 from jobs import AlertaSession
 
 if __name__ == "__main__":
+    os.environ['PYTHON_EGG_CACHE'] = "/tmp"
 
     parser = argparse.ArgumentParser(description="Execute process")
     parser.add_argument('-e','--schemaExadata', metavar='schemaExadata', type=str, help='')
