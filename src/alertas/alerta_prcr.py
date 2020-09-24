@@ -24,6 +24,7 @@ groupby_cols = [
 def alerta_prcr(options):
     # data do fato será usada para a maioria dos cálculos
     # Caso a data do fato seja NULL, ou seja maior que a data de cadastro, usar cadastro como data do fato
+    # Apenas códigos de pacotes de PIPs
     doc_pena = spark.sql("""
         SELECT docu_dk, docu_nr_mp, docu_nr_externo, docu_tx_etiqueta,
             CASE WHEN docu_dt_fato < docu_dt_cadastro THEN docu_dt_fato ELSE docu_dt_cadastro END as docu_dt_fato,
@@ -38,6 +39,7 @@ def alerta_prcr(options):
         AND docu_fsdc_dk = 1
         AND docu_dt_cadastro >= '2010-01-01'
         AND max_pena IS NOT NULL
+        AND cod_pct IN (200, 201, 202, 203, 204, 205, 206, 207, 208, 209)
     """.format(options['schema_exadata_aux'], options['schema_exadata'])
     )
     doc_pena.createOrReplaceTempView('DOC_PENA')
