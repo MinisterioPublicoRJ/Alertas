@@ -93,7 +93,7 @@ class AlertaSession:
         data = [(self.session_id, self.start_session, self.end_session, self.status)]
         
         session_df = spark.createDataFrame(data, schema)
-        session_df = session_df.withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
+        session_df = session_df.withColumn("dt_partition", date_format(current_timestamp(), "yyyyMMdd"))
         session_df.coalesce(1).write.format('parquet').saveAsTable(
             '{0}.{1}'.format(self.options['schema_exadata_aux'], self.SESSION_TABLE_NAME),
             mode='append')
@@ -125,7 +125,7 @@ class AlertaSession:
             dataframe = dataframe.withColumn('alrt_descricao', lit(desc).cast(StringType())).\
                 withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
                 withColumn('alrt_session', lit(self.session_id).cast(StringType())).\
-                withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
+                withColumn("dt_partition", date_format(current_timestamp(), "yyyyMMdd"))
 
             dataframe.write.mode("append").saveAsTable(self.temp_table_with_schema)
 
