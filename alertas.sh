@@ -24,5 +24,3 @@ spark-submit --master yarn --deploy-mode cluster \
     --conf spark.shuffle.io.retryWait=60s \
     --conf "spark.executor.extraJavaOptions=-XX:+UseG1GC -XX:InitiatingHeapOccupancyPercent=35" \
     --py-files src/alertas/*.py,packages/*.egg,packages/*.whl,packages/*.zip src/alertas/main.py $@
-
-impala-shell -q "INVALIDATE METADATA"

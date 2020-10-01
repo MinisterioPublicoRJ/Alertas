@@ -63,6 +63,16 @@ class AlertaSession:
         self.end_session = None
         self.status = self.STATUS_RUNNING
 
+        # Definir o schema no nome da tabela evita possíveis conflitos
+        # entre processos em produção e desenvolvimento
+        self.temp_table_with_schema = '{0}.{1}'.format(
+            options['schema_exadata_aux'],
+            self.TEMP_TABLE_NAME
+        )
+        # Evita que tabela temporária de processos anteriores com erro
+        # influencie no resultado do processo atual.
+        spark.sql("DROP TABLE IF EXISTS {0}".format(self.temp_table_with_schema))
+
     @staticmethod
     def now():
         return datetime.now()
@@ -83,7 +93,7 @@ class AlertaSession:
         data = [(self.session_id, self.start_session, self.end_session, self.status)]
         
         session_df = spark.createDataFrame(data, schema)
-        session_df = session_df.withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
+        session_df = session_df.withColumn("dt_partition", date_format(current_timestamp(), "yyyyMMdd"))
         session_df.coalesce(1).write.format('parquet').saveAsTable(
             '{0}.{1}'.format(self.options['schema_exadata_aux'], self.SESSION_TABLE_NAME),
             mode='append')
@@ -115,9 +125,9 @@ class AlertaSession:
             dataframe = dataframe.withColumn('alrt_descricao', lit(desc).cast(StringType())).\
                 withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
                 withColumn('alrt_session', lit(self.session_id).cast(StringType())).\
-                withColumn("dt_partition", date_format(current_timestamp(), "ddMMyyyy"))
+                withColumn("dt_partition", date_format(current_timestamp(), "yyyyMMdd"))
 
-            dataframe.write.mode("append").saveAsTable(self.TEMP_TABLE_NAME)
+            dataframe.write.mode("append").saveAsTable(self.temp_table_with_schema)
 
     def check_table_exists(self, schema, table_name):
         spark.sql("use %s" % schema)
@@ -127,7 +137,7 @@ class AlertaSession:
     def write_dataframe(self):
         #print('Gravando alertas do tipo {0}'.format(self.alerta_list[alerta]))
         with Timer():
-            temp_table_df = spark.table(self.TEMP_TABLE_NAME)
+            temp_table_df = spark.table(self.temp_table_with_schema)
 
             is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
             table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
@@ -135,5 +145,5 @@ class AlertaSession:
                 temp_table_df.repartition("dt_partition").write.mode("overwrite").insertInto(table_name, overwrite=True)
             else:
                 temp_table_df.repartition("dt_partition").write.partitionBy("dt_partition").saveAsTable(table_name)
-            
-            spark.sql("drop table default.{0}".format(self.TEMP_TABLE_NAME))
+ 
+            spark.sql("drop table {0}".format(self.temp_table_with_schema))
