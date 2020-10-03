@@ -17,6 +17,17 @@ columns = [
     col('elapsed').alias('alrt_dias_passados')
 ]
 
+columns_alias = [
+    col('alrt_docu_dk'), 
+    col('alrt_docu_nr_mp'), 
+    col('alrt_docu_nr_externo'), 
+    col('alrt_docu_etiqueta'), 
+    col('alrt_docu_classe'),
+    col('alrt_docu_date'),  
+    col('alrt_orgi_orga_dk'),
+    col('alrt_classe_hierarquia')
+]
+
 groupby_cols = [
     'alrt_docu_dk'
 ]
@@ -146,9 +157,37 @@ def alerta_prcr(options):
         FROM DOCS_DT_INICIAL_PRESCRICAO D
     """).\
         withColumn("elapsed", lit(datediff(current_date(), 'data_prescricao')).cast(IntegerType()))
+    resultado.createOrReplaceTempView('TEMPO_PARA_PRESCRICAO')
 
-    resultado = resultado.filter('elapsed > 0').\
-        groupBy(columns[:-1]).agg({'elapsed': 'max'}).\
-        withColumnRenamed('max(elapsed)', 'alrt_dias_passados')
+    LIMIAR_PRESCRICAO_PROXIMA = -7
+    subtipos = spark.sql("""
+        SELECT T.*,
+            CASE
+                WHEN elapsed > 0 THEN 2                                 -- prescrito
+                WHEN elapsed <= {LIMIAR_PRESCRICAO_PROXIMA} THEN 0      -- nem prescrito nem proximo
+                ELSE 1                                                  -- proximo de prescrever
+            END AS status_prescricao
+        FROM TEMPO_PARA_PRESCRICAO T
+    """.format(
+            LIMIAR_PRESCRICAO_PROXIMA=LIMIAR_PRESCRICAO_PROXIMA)
+    )
+    subtipos = subtipos.groupBy(columns[:-1]).agg(min('status_prescricao'), max('status_prescricao')).\
+        withColumnRenamed('max(status_prescricao)', 'max_status').\
+        withColumnRenamed('min(status_prescricao)', 'min_status')
+    subtipos.createOrReplaceTempView('MAX_MIN_STATUS')
+
+    # Os WHEN precisam ser feitos na ordem PRCR1, 2, 3 e depois 4!
+    resultado = spark.sql("""
+        SELECT T.*,
+        CASE
+            WHEN min_status = 2 THEN 'PRCR1'    -- todos prescritos
+            WHEN min_status = 1 THEN 'PRCR2'    -- todos próximos de prescrever
+            WHEN max_status = 2 THEN 'PRCR3'    -- subentende-se min=0 aqui, logo, algum prescrito (mas não todos próximos)
+            WHEN max_status = 1 THEN 'PRCR4'    -- subentende-se min=0, logo, nenhum prescrito, mas algum próximo (não todos)
+            ELSE NULL                           -- não entra em nenhum caso (será filtrado)
+            END AS alrt_sigla
+        FROM MAX_MIN_STATUS T
+    """)
+    resultado = resultado.filter('alrt_sigla IS NOT NULL').select(columns_alias + ['alrt_sigla'])
+
     return resultado
-

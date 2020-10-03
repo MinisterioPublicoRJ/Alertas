@@ -122,8 +122,8 @@ class AlertaSession:
             dataframe = func(self.options)
             dataframe = dataframe.withColumn('alrt_dk', lit('NO_ID')) if 'alrt_dk' not in dataframe.columns else dataframe
             dataframe = dataframe.withColumn('alrt_dias_passados', lit(-1)) if 'alrt_dias_passados' not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn('alrt_sigla', lit(alerta).cast(StringType())) if 'alrt_sigla' not in dataframe.columns else dataframe
             dataframe = dataframe.withColumn('alrt_descricao', lit(desc).cast(StringType())).\
-                withColumn('alrt_sigla', lit(alerta).cast(StringType())).\
                 withColumn('alrt_session', lit(self.session_id).cast(StringType())).\
                 withColumn("dt_partition", date_format(current_timestamp(), "yyyyMMdd"))
 
