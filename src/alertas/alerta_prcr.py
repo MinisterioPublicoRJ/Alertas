@@ -31,11 +31,12 @@ columns_alias = [
 def alerta_prcr(options):
     # data do fato será usada para a maioria dos cálculos
     # Caso a data do fato seja NULL, ou seja maior que a data de cadastro, usar cadastro como data do fato
+    # Mantém-se a data do fato original (mesmo NULL ou maior que dt cadastro) para a tabela de metadados do cálculo
     doc_pena = spark.sql("""
-        SELECT docu_dk, docu_nr_mp, docu_nr_externo, docu_tx_etiqueta,
+        SELECT docu_dk, docu_nr_mp, docu_nr_externo, docu_tx_etiqueta, docu_dt_fato as docu_dt_fato_original,
             CASE WHEN docu_dt_fato < docu_dt_cadastro THEN docu_dt_fato ELSE docu_dt_cadastro END as docu_dt_fato,
             docu_dt_cadastro, docu_orgi_orga_dk_responsavel, cldc_dk, cldc_ds_classe,
-            cldc_ds_hierarquia, id, max_pena, nome_delito, multiplicador, abuso_menor
+            cldc_ds_hierarquia, id, artigo_lei, max_pena, nome_delito, multiplicador, abuso_menor
         FROM documento
         LEFT JOIN {0}.mmps_classe_hierarquia ON cldc_dk = docu_cldc_dk
         JOIN {1}.mcpr_assunto_documento ON docu_dk = asdo_docu_dk
@@ -164,10 +165,29 @@ def alerta_prcr(options):
     resultado.createOrReplaceTempView('TEMPO_PARA_PRESCRICAO')
     spark.catalog.cacheTable("TEMPO_PARA_PRESCRICAO")
 
+    # Tabela de detalhes dos alertas, para ser usada no overlay do alerta, e também para debugging
     spark.sql("""
-        SELECT docu_dk, investigado_pess_dk, nome_delito, id as id_assunto, abuso_menor, max_pena, delitos_multiplicadores, fator_pena, max_pena_fatorado, tempo_prescricao,
-        investigado_maior_70_menor_21, tempo_prescricao_fatorado, vitima_menor_mais_jovem_dt_18_anos, dt_acordo_npp, cast(dt_inicial_prescricao as string) as dt_inicial_prescricao,
-        data_prescricao, elapsed
+        SELECT 
+            docu_dk AS adpr_docu_dk,
+            investigado_pess_dk as adpr_investigado_pess_dk,
+            nome_delito as adpr_nome_delito,
+            id as adpr_id_assunto,
+            artigo_lei as adpr_artigo_lei,
+            abuso_menor as adpr_abuso_menor,
+            max_pena as adpr_max_pena,
+            delitos_multiplicadores as adpr_delitos_multiplicadores,
+            fator_pena as adpr_fator_pena,
+            max_pena_fatorado as adpr_max_pena_fatorado,
+            tempo_prescricao as adpr_tempo_prescricao,
+            investigado_maior_70_menor_21 as adpr_investigado_prescricao_reduzida,
+            tempo_prescricao_fatorado as adpr_tempo_prescricao_fatorado,
+            vitima_menor_mais_jovem_dt_18_anos as adpr_dt_18_anos_menor_vitima,
+            dt_acordo_npp as adpr_dt_acordo_npp,
+            docu_dt_fato_original as adpr_docu_dt_fato,
+            docu_dt_cadastro as adpr_docu_dt_cadastro,
+            cast(dt_inicial_prescricao as string) as adpr_dt_inicial_prescricao,
+            data_prescricao as adpr_dt_final_prescricao,
+            elapsed as adpr_dias_prescrito
         FROM TEMPO_PARA_PRESCRICAO
     """).write.mode('overwrite').saveAsTable('{}.{}'.format(
             options['schema_exadata_aux'],
