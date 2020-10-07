@@ -28,10 +28,6 @@ columns_alias = [
     col('alrt_classe_hierarquia')
 ]
 
-groupby_cols = [
-    'alrt_docu_dk'
-]
-
 def alerta_prcr(options):
     # data do fato será usada para a maioria dos cálculos
     # Caso a data do fato seja NULL, ou seja maior que a data de cadastro, usar cadastro como data do fato
@@ -57,7 +53,7 @@ def alerta_prcr(options):
     # Caso um dos assuntos seja multiplicador, multiplicar as penas pelo fator
     doc_prescricao = spark.sql("""
         WITH PENA_FATORES AS (
-            SELECT docu_dk, EXP(SUM(LN(max_pena))) AS fator_pena
+            SELECT docu_dk, EXP(SUM(LN(max_pena))) AS fator_pena, concat_ws(', ', collect_list(nome_delito)) AS delitos_multiplicadores
             FROM DOC_PENA
             WHERE multiplicador = 1
             GROUP BY docu_dk
@@ -73,7 +69,9 @@ def alerta_prcr(options):
         FROM (
             SELECT 
                 P.*,
-                CASE WHEN fator_pena IS NOT NULL THEN max_pena * fator_pena ELSE max_pena END AS max_pena_fatorado
+                CASE WHEN fator_pena IS NOT NULL THEN max_pena * fator_pena ELSE max_pena END AS max_pena_fatorado,
+                fator_pena,
+                delitos_multiplicadores
             FROM DOC_PENA P
             LEFT JOIN PENA_FATORES F ON F.docu_dk = P.docu_dk 
             WHERE multiplicador = 0
@@ -84,23 +82,24 @@ def alerta_prcr(options):
     # Se o acusado tiver < 21 ou >= 70, seja na data do fato ou na data presente, multiplicar tempo_prescricao por 0.5
     doc_prescricao_fatorado = spark.sql("""
         WITH PRESCRICAO_FATORES AS (
-            SELECT docu_dk, 0.5 AS fator_prescricao
+            SELECT docu_dk, investigado_pess_dk,
+            CASE WHEN NOT (dt_compare >= dt_21 AND current_timestamp() < dt_70) THEN 0.5 ELSE NULL END AS fator_prescricao
             FROM (
                 SELECT 
-                    docu_dk,
+                    docu_dk, pesf_pess_dk as investigado_pess_dk,
                     add_months(pesf_dt_nasc, 21 * 12) AS dt_21,
                     add_months(pesf_dt_nasc, 70 * 12) AS dt_70,
                     docu_dt_fato AS dt_compare
-                FROM DOC_PRESCRICAO
+                FROM (SELECT DISTINCT docu_dk, docu_dt_fato FROM DOC_PRESCRICAO) D
                 JOIN {0}.mcpr_personagem ON pers_docu_dk = docu_dk
                 JOIN {0}.mcpr_pessoa_fisica ON pers_pesf_dk = pesf_pess_dk
                 WHERE pers_tppe_dk IN (290, 7, 21, 317, 20, 14, 32, 345, 40, 5)
                 ) t
-            WHERE NOT (dt_compare >= dt_21 AND current_timestamp() < dt_70)
-            GROUP BY docu_dk
         )
         SELECT P.*,
-        CASE WHEN fator_prescricao IS NOT NULL THEN tempo_prescricao * fator_prescricao ELSE tempo_prescricao END AS tempo_prescricao_fatorado
+        CASE WHEN fator_prescricao IS NOT NULL THEN tempo_prescricao * fator_prescricao ELSE tempo_prescricao END AS tempo_prescricao_fatorado,
+        fator_prescricao IS NOT NULL AS investigado_maior_70_menor_21,
+        investigado_pess_dk
         FROM DOC_PRESCRICAO P
         LEFT JOIN PRESCRICAO_FATORES F ON F.docu_dk = P.docu_dk
     """.format(options['schema_exadata']))
@@ -125,24 +124,29 @@ def alerta_prcr(options):
     # Prioridade de data inicial: data de 18 anos (caso abuso menor), rescisão de acordo ANPP, dt_fato
     dt_inicial = spark.sql("""
         WITH DOCS_ABUSO_MENOR AS (
-            SELECT docu_dk,
-                CASE WHEN dt_18_anos > docu_dt_fato THEN dt_18_anos ELSE NULL END AS dt_18_anos
-            FROM DOC_PRESCRICAO_FATORADO P
-            JOIN {0}.mcpr_personagem ON pers_docu_dk = docu_dk
-            JOIN (
-                SELECT 
-                    PF.*,
-                    add_months(pesf_dt_nasc, 18*12) AS dt_18_anos
-                FROM {0}.mcpr_pessoa_fisica PF
-                ) t ON pers_pesf_dk = pesf_pess_dk
-            WHERE abuso_menor = 1
-            AND pers_tppe_dk IN (3, 13, 18, 6, 248, 290)
+            SELECT docu_dk, MAX(dt_18_anos) AS dt_18_anos
+            FROM (
+                SELECT docu_dk, CASE WHEN dt_18_anos > docu_dt_fato THEN dt_18_anos ELSE NULL END AS dt_18_anos
+                FROM DOC_PRESCRICAO_FATORADO P
+                JOIN {0}.mcpr_personagem ON pers_docu_dk = docu_dk
+                JOIN (
+                    SELECT 
+                        PF.*,
+                        cast(add_months(pesf_dt_nasc, 18*12) as timestamp) AS dt_18_anos
+                    FROM {0}.mcpr_pessoa_fisica PF
+                    ) t ON pers_pesf_dk = pesf_pess_dk
+                WHERE abuso_menor = 1
+                AND pers_tppe_dk IN (3, 13, 18, 6, 248, 290)
+            ) t2
+            GROUP BY docu_dk
         )
         SELECT P.*,
             CASE 
-                WHEN dt_18_anos IS NOT NULL THEN dt_18_anos
+                WHEN dt_18_anos IS NOT NULL AND abuso_menor = 1 THEN dt_18_anos
                 WHEN pcao_dt_andamento IS NOT NULL THEN pcao_dt_andamento 
-                ELSE docu_dt_fato END AS dt_inicial_prescricao
+                ELSE docu_dt_fato END AS dt_inicial_prescricao,
+            dt_18_anos AS vitima_menor_mais_jovem_dt_18_anos,
+            pcao_dt_andamento AS dt_acordo_npp
         FROM DOC_PRESCRICAO_FATORADO P
         LEFT JOIN DOCS_ANPP ON vist_docu_dk = docu_dk
         LEFT JOIN DOCS_ABUSO_MENOR M ON M.docu_dk = P.docu_dk
@@ -158,8 +162,20 @@ def alerta_prcr(options):
     """).\
         withColumn("elapsed", lit(datediff(current_date(), 'data_prescricao')).cast(IntegerType()))
     resultado.createOrReplaceTempView('TEMPO_PARA_PRESCRICAO')
+    spark.catalog.cacheTable("TEMPO_PARA_PRESCRICAO")
 
-    LIMIAR_PRESCRICAO_PROXIMA = -7
+    spark.sql("""
+        SELECT docu_dk, investigado_pess_dk, nome_delito, id as id_assunto, abuso_menor, max_pena, delitos_multiplicadores, fator_pena, max_pena_fatorado, tempo_prescricao,
+        investigado_maior_70_menor_21, tempo_prescricao_fatorado, vitima_menor_mais_jovem_dt_18_anos, dt_acordo_npp, cast(dt_inicial_prescricao as string) as dt_inicial_prescricao,
+        data_prescricao, elapsed
+        FROM TEMPO_PARA_PRESCRICAO
+    """).write.mode('overwrite').saveAsTable('{}.{}'.format(
+            options['schema_exadata_aux'],
+            options['prescricao_tabela_detalhe']
+        )
+    )
+
+    LIMIAR_PRESCRICAO_PROXIMA = -options['prescricao_limiar']
     subtipos = spark.sql("""
         SELECT T.*,
             CASE
@@ -171,10 +187,10 @@ def alerta_prcr(options):
     """.format(
             LIMIAR_PRESCRICAO_PROXIMA=LIMIAR_PRESCRICAO_PROXIMA)
     )
-    subtipos = subtipos.groupBy(columns[:-1]).agg(min('status_prescricao'), max('status_prescricao')).\
+    max_min_status = subtipos.groupBy(columns[:-1]).agg(min('status_prescricao'), max('status_prescricao')).\
         withColumnRenamed('max(status_prescricao)', 'max_status').\
         withColumnRenamed('min(status_prescricao)', 'min_status')
-    subtipos.createOrReplaceTempView('MAX_MIN_STATUS')
+    max_min_status.createOrReplaceTempView('MAX_MIN_STATUS')
 
     # Os WHEN precisam ser feitos na ordem PRCR1, 2, 3 e depois 4!
     resultado = spark.sql("""
@@ -185,9 +201,16 @@ def alerta_prcr(options):
             WHEN max_status = 2 THEN 'PRCR3'    -- subentende-se min=0 aqui, logo, algum prescrito (mas não todos próximos)
             WHEN max_status = 1 THEN 'PRCR4'    -- subentende-se min=0, logo, nenhum prescrito, mas algum próximo (não todos)
             ELSE NULL                           -- não entra em nenhum caso (será filtrado)
-            END AS alrt_sigla
+            END AS alrt_sigla,
+        CASE
+            WHEN min_status = 2 THEN 'Todos os crimes prescritos'
+            WHEN min_status = 1 THEN 'Todos os crimes próximos de prescrever'
+            WHEN max_status = 2 THEN 'Algum crime prescrito'
+            WHEN max_status = 1 THEN 'Algum crime próximo de prescrever'
+            ELSE NULL                     
+            END AS alrt_descricao
         FROM MAX_MIN_STATUS T
     """)
-    resultado = resultado.filter('alrt_sigla IS NOT NULL').select(columns_alias + ['alrt_sigla'])
+    resultado = resultado.filter('alrt_sigla IS NOT NULL').select(columns_alias + ['alrt_sigla', 'alrt_descricao'])
 
     return resultado

@@ -53,11 +53,14 @@ class AlertaSession:
     TEMP_TABLE_NAME = "temp_mmps_alertas"
     FINAL_TABLE_NAME = "mmps_alertas"
     SESSION_TABLE_NAME = "mmps_alerta_sessao"
+    PRCR_DETALHE_TABLE_NAME = "mmps_alerta_detalhe_prcr"
 
     def __init__(self, options):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
         spark.conf.set("spark.sql.autoBroadcastJoinThreshold", -1)
         self.options = options
+        # Setando o nome das tabelas de detalhe aqui, podemos centralizá-las como atributos de AlertaSession
+        self.options['prescricao_tabela_detalhe'] = self.PRCR_DETALHE_TABLE_NAME
         self.session_id = str(uuid.uuid4().int & (1<<60)-1)
         self.start_session = self.now()
         self.end_session = None
@@ -123,8 +126,8 @@ class AlertaSession:
             dataframe = dataframe.withColumn('alrt_dk', lit('NO_ID')) if 'alrt_dk' not in dataframe.columns else dataframe
             dataframe = dataframe.withColumn('alrt_dias_passados', lit(-1)) if 'alrt_dias_passados' not in dataframe.columns else dataframe
             dataframe = dataframe.withColumn('alrt_sigla', lit(alerta).cast(StringType())) if 'alrt_sigla' not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn('alrt_descricao', lit(desc).cast(StringType())).\
-                withColumn('alrt_session', lit(self.session_id).cast(StringType())).\
+            dataframe = dataframe.withColumn('alrt_descricao', lit(desc).cast(StringType())) if 'alrt_descricao' not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn('alrt_session', lit(self.session_id).cast(StringType())).\
                 withColumn("dt_partition", date_format(current_timestamp(), "yyyyMMdd"))
 
             dataframe.write.mode("append").saveAsTable(self.temp_table_with_schema)
