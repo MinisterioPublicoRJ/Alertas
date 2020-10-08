@@ -46,6 +46,7 @@ def alerta_prcr(options):
         AND docu_fsdc_dk = 1
         AND docu_dt_cadastro >= '2010-01-01'
         AND max_pena IS NOT NULL
+        AND asdo_dt_fim IS NULL           -- tira assuntos que acabaram
     """.format(options['schema_exadata_aux'], options['schema_exadata'])
     )
     doc_pena.createOrReplaceTempView('DOC_PENA')
@@ -83,24 +84,28 @@ def alerta_prcr(options):
     # Se o acusado tiver < 21 ou >= 70, seja na data do fato ou na data presente, multiplicar tempo_prescricao por 0.5
     doc_prescricao_fatorado = spark.sql("""
         WITH PRESCRICAO_FATORES AS (
-            SELECT docu_dk, investigado_pess_dk,
+            SELECT docu_dk, investigado_pess_dk, investigado_nm,
             CASE WHEN NOT (dt_compare >= dt_21 AND current_timestamp() < dt_70) THEN 0.5 ELSE NULL END AS fator_prescricao
             FROM (
-                SELECT 
-                    docu_dk, pesf_pess_dk as investigado_pess_dk,
+                SELECT DISTINCT
+                    docu_dk,
+                    pesf_pess_dk as investigado_pess_dk,
+                    pesf_nm_pessoa_fisica as investigado_nm,
                     add_months(pesf_dt_nasc, 21 * 12) AS dt_21,
                     add_months(pesf_dt_nasc, 70 * 12) AS dt_70,
                     docu_dt_fato AS dt_compare
-                FROM (SELECT DISTINCT docu_dk, docu_dt_fato FROM DOC_PRESCRICAO) D
+                FROM DOC_PRESCRICAO
                 JOIN {0}.mcpr_personagem ON pers_docu_dk = docu_dk
                 JOIN {0}.mcpr_pessoa_fisica ON pers_pesf_dk = pesf_pess_dk
-                WHERE pers_tppe_dk IN (290, 7, 21, 317, 20, 14, 32, 345, 40, 5)
+                WHERE pers_tppe_dk IN (290, 7, 21, 317, 20, 14, 32, 345, 40, 5, 24)
+                AND pesf_nm_pessoa_fisica != 'MP'
                 ) t
         )
         SELECT P.*,
         CASE WHEN fator_prescricao IS NOT NULL THEN tempo_prescricao * fator_prescricao ELSE tempo_prescricao END AS tempo_prescricao_fatorado,
         fator_prescricao IS NOT NULL AS investigado_maior_70_menor_21,
-        investigado_pess_dk
+        investigado_pess_dk,
+        investigado_nm
         FROM DOC_PRESCRICAO P
         LEFT JOIN PRESCRICAO_FATORES F ON F.docu_dk = P.docu_dk
     """.format(options['schema_exadata']))
@@ -170,6 +175,7 @@ def alerta_prcr(options):
         SELECT 
             docu_dk AS adpr_docu_dk,
             investigado_pess_dk as adpr_investigado_pess_dk,
+            investigado_nm as adpr_investigado_nm,
             nome_delito as adpr_nome_delito,
             id as adpr_id_assunto,
             artigo_lei as adpr_artigo_lei,
