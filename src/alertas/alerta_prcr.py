@@ -31,6 +31,7 @@ columns_alias = [
 def alerta_prcr(options):
     # data do fato será usada para a maioria dos cálculos
     # Caso a data do fato seja NULL, ou seja maior que a data de cadastro, usar cadastro como data do fato
+    # Apenas códigos de pacotes de PIPs
     # Mantém-se a data do fato original (mesmo NULL ou maior que dt cadastro) para a tabela de metadados do cálculo
     doc_pena = spark.sql("""
         SELECT docu_dk, docu_nr_mp, docu_nr_externo, docu_tx_etiqueta, docu_dt_fato as docu_dt_fato_original,
@@ -46,6 +47,7 @@ def alerta_prcr(options):
         AND docu_fsdc_dk = 1
         AND docu_dt_cadastro >= '2010-01-01'
         AND max_pena IS NOT NULL
+        AND cod_pct IN (200, 201, 202, 203, 204, 205, 206, 207, 208, 209)
         AND asdo_dt_fim IS NULL           -- tira assuntos que acabaram
     """.format(options['schema_exadata_aux'], options['schema_exadata'])
     )
