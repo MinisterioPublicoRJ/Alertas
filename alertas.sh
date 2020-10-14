@@ -24,3 +24,16 @@ spark-submit --master yarn --deploy-mode cluster \
     --conf spark.shuffle.io.retryWait=60s \
     --conf "spark.executor.extraJavaOptions=-XX:+UseG1GC -XX:InitiatingHeapOccupancyPercent=35" \
     --py-files src/alertas/*.py,packages/*.egg,packages/*.whl,packages/*.zip src/alertas/main.py $@
+
+while [ $# -gt 0 ]; do
+
+   if [[ $1 == *"-"* ]]; then
+        param="${1/-/}"
+        declare $param="$2"
+   fi
+
+  shift
+done
+
+impala-shell -q "INVALIDATE METADATA ${a}.mmps_alertas"
+impala-shell -q "COMPUTE STATS ${a}.mmps_alertas"
