@@ -55,6 +55,25 @@ class AlertaSession:
     SESSION_TABLE_NAME = "mmps_alerta_sessao"
     PRCR_DETALHE_TABLE_NAME = "mmps_alerta_detalhe_prcr"
 
+    # Ordem em que as colunas estão salvas na tabela final
+    # Esta ordem deve ser mantida por conta do insertInto que é realizado
+    COLUMN_ORDER = [
+        'alrt_docu_dk',
+        'alrt_docu_nr_mp',
+        'alrt_docu_nr_externo',
+        'alrt_docu_etiqueta',
+        'alrt_docu_classe',
+        'alrt_docu_date',
+        'alrt_orgi_orga_dk',
+        'alrt_classe_hierarquia',
+        'alrt_dias_passados',
+        'alrt_dk',
+        'alrt_descricao',
+        'alrt_sigla',
+        'alrt_session',
+        'dt_partition'
+    ]
+
     def __init__(self, options):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
         spark.conf.set("spark.sql.autoBroadcastJoinThreshold", -1)
@@ -145,7 +164,7 @@ class AlertaSession:
             is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
             table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
             if is_exists_table_alertas:
-                temp_table_df.repartition("dt_partition").write.mode("overwrite").insertInto(table_name, overwrite=True)
+                temp_table_df.select(self.COLUMN_ORDER).repartition("dt_partition").write.mode("overwrite").insertInto(table_name, overwrite=True)
             else:
                 temp_table_df.repartition("dt_partition").write.partitionBy("dt_partition").saveAsTable(table_name)
  
