@@ -166,6 +166,6 @@ class AlertaSession:
             if is_exists_table_alertas:
                 temp_table_df.select(self.COLUMN_ORDER).repartition("dt_partition").write.mode("overwrite").insertInto(table_name, overwrite=True)
             else:
-                temp_table_df.repartition("dt_partition").write.partitionBy("dt_partition").saveAsTable(table_name)
+                temp_table_df.select(self.COLUMN_ORDER).repartition("dt_partition").write.partitionBy("dt_partition").saveAsTable(table_name)
  
             spark.sql("drop table {0}".format(self.temp_table_with_schema))
