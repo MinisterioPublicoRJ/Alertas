@@ -1,5 +1,5 @@
 #-*-coding:utf-8-*-
-from pyspark.sql.types import IntegerType
+from pyspark.sql.types import IntegerType, StringType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -14,7 +14,9 @@ columns = [
     col('docu_dt_cadastro').alias('alrt_docu_date'),  
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
-    col('elapsed').alias('alrt_dias_passados')
+    col('elapsed').alias('alrt_dias_passados'),
+    col('alrt_sigla'),
+    col('alrt_descricao'),
 ]
 
 def alerta_ppfp(options):
@@ -35,9 +37,22 @@ def alerta_ppfp(options):
     doc_sub_andamento = doc_andamento.join(sub_andamento, doc_andamento.PCAO_DK == sub_andamento.STAO_PCAO_DK, 'inner')
     doc_totais = doc_classe.join(doc_sub_andamento, doc_classe.DOCU_DK == doc_sub_andamento.VIST_DOCU_DK, 'left')
 
+    # Separar em alertas PPFP e PPPV
+    # Documentos fora do prazo (PPFP)
     doc_prorrogado = doc_totais.filter('stao_dk is not null').filter('elapsed > 180')
     doc_nao_prorrogado = doc_totais.filter('stao_dk is null').filter('elapsed > 30')
 
-    resultado = doc_prorrogado.union(doc_nao_prorrogado)
+    # Documentos próximos de vencer (PPPV)
+    doc_prorrogado_proximo = doc_totais.filter('stao_dk is not null').filter('elapsed > 160 AND elapsed <= 180')
+    doc_nao_prorrogado_proximo = doc_totais.filter('stao_dk is null').filter('elapsed > 10 AND elapsed <= 30')
+
+    resultado_ppfp = doc_prorrogado.union(doc_nao_prorrogado).\
+        withColumn('alrt_sigla', lit('PPFP').cast(StringType())).\
+        withColumn('alrt_descricao', lit('Procedimento Preparatório fora do prazo').cast(StringType()))
+    resultado_pppv = doc_prorrogado_proximo.union(doc_nao_prorrogado_proximo).\
+        withColumn('alrt_sigla', lit('PPPV').cast(StringType())).\
+        withColumn('alrt_descricao', lit('Procedimento Preparatório próximo de vencer').cast(StringType()))
+
+    resultado = resultado_ppfp.union(resultado_pppv)
     
     return resultado.select(columns).distinct()
