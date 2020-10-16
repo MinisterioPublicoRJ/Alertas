@@ -24,13 +24,13 @@ def alerta_ro(options):
                 CAST(substring(MAX(proc_numero), 5, 5) AS INTEGER)
                     - COUNT(DISTINCT proc_numero) qtd_falta,
                 COUNT(DISTINCT proc_numero) total_de_ros_recebidos
-            FROM opengeo.seg_pub_in_pol_procedimento
+            FROM {0}.seg_pub_in_pol_procedimento
             WHERE year(proc_data) = year(now())
             GROUP BY numero_delegacia
     )
     SELECT * FROM ros_que_faltam rqf
     JOIN exadata_aux_dev.tb_pip_cisp tpc ON rqf.numero_delegacia = tpc.cisp_codigo
     WHERE rqf.qtd_falta >= 1
-    """)
+    """.format(options["schema_opengeo"]))
 
     return df.select(columns)
