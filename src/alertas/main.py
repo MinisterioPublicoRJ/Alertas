@@ -10,14 +10,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Execute process")
     parser.add_argument('-e','--schemaExadata', metavar='schemaExadata', type=str, help='')
     parser.add_argument('-a','--schemaExadataAux', metavar='schemaExadataAux', type=str, help='')
+    parser.add_argument('-g','--schemaOpenGeo', metavar='schemaOpenGeo', type=str, help='')
     parser.add_argument('-i','--impalaHost', metavar='impalaHost', type=str, help='')
     parser.add_argument('-o','--impalaPort', metavar='impalaPort', type=str, help='')
     parser.add_argument('-pl', '--prescricaoLimiar', metavar='prescricaoLimiar', type=int, default=7, help='')
     args = parser.parse_args()
 
     options = {
-                    'schema_exadata': args.schemaExadata, 
+                    'schema_exadata': args.schemaExadata,
                     'schema_exadata_aux': args.schemaExadataAux,
+                    'schema_opengeo': args.schemaOpenGeo,
                     'impala_host' : args.impalaHost,
                     'impala_port' : args.impalaPort,
                     'prescricao_limiar': args.prescricaoLimiar

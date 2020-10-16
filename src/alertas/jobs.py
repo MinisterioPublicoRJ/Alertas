@@ -26,6 +26,7 @@ from alerta_ouvi import alerta_ouvi
 from alerta_pa1a import alerta_pa1a
 from alerta_ppfp import alerta_ppfp
 from alerta_prcr import alerta_prcr
+from alerta_ro import alerta_ro
 from alerta_vadf import alerta_vadf
 
 
@@ -45,6 +46,7 @@ class AlertaSession:
         'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf],
         'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30],
         'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
+        'RO': ['ROs não entregues pelas delegacias', alerta_ro],
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
@@ -142,6 +144,13 @@ class AlertaSession:
         print('Verificando alertas do tipo: {0}'.format(alerta))
         with Timer():
             dataframe = func(self.options)
+            dataframe = dataframe.withColumn("alrt_docu_dk", lit(None)) if "alrt_docu_dk" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_docu_nr_mp", lit(None)) if "alrt_docu_nr_mp" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_docu_nr_externo", lit(None)) if "alrt_docu_nr_externo" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_docu_etiqueta", lit(None)) if "alrt_docu_etiqueta" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_docu_classe", lit(None)) if "alrt_docu_classe" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_docu_date", lit(None)) if "alrt_docu_date" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_classe_hierarquia", lit(None)) if "alrt_classe_hierarquia" not in dataframe.columns else dataframe
             dataframe = dataframe.withColumn('alrt_dk', lit('NO_ID')) if 'alrt_dk' not in dataframe.columns else dataframe
             dataframe = dataframe.withColumn('alrt_dias_passados', lit(-1)) if 'alrt_dias_passados' not in dataframe.columns else dataframe
             dataframe = dataframe.withColumn('alrt_sigla', lit(alerta).cast(StringType())) if 'alrt_sigla' not in dataframe.columns else dataframe
