@@ -29,8 +29,8 @@ def alerta_ro(options):
             GROUP BY numero_delegacia
     )
     SELECT * FROM ros_que_faltam rqf
-    JOIN exadata_aux_dev.tb_pip_cisp tpc ON rqf.numero_delegacia = tpc.cisp_codigo
+    JOIN {1}.tb_pip_cisp tpc ON rqf.numero_delegacia = tpc.cisp_codigo
     WHERE rqf.qtd_falta >= 1
-    """.format(options["schema_opengeo"]))
+    """.format(options["schema_opengeo"], options["schema_exadata_aux"]))
 
     return df.select(columns)
