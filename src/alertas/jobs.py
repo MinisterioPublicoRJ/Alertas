@@ -173,8 +173,8 @@ class AlertaSession:
             is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
             table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
             if is_exists_table_alertas:
-                temp_table_df.select(self.COLUMN_ORDER).repartition("dt_partition").write.mode("overwrite").insertInto(table_name, overwrite=True)
+                temp_table_df.select(self.COLUMN_ORDER).repartition(3).write.mode("overwrite").insertInto(table_name, overwrite=True)
             else:
-                temp_table_df.select(self.COLUMN_ORDER).repartition("dt_partition").write.partitionBy("dt_partition").saveAsTable(table_name)
+                temp_table_df.select(self.COLUMN_ORDER).repartition(3).write.partitionBy("dt_partition").saveAsTable(table_name)
  
             spark.sql("drop table {0}".format(self.temp_table_with_schema))
