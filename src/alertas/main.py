@@ -13,7 +13,7 @@ if __name__ == "__main__":
     parser.add_argument('-g','--schemaOpenGeo', metavar='schemaOpenGeo', type=str, help='')
     parser.add_argument('-i','--impalaHost', metavar='impalaHost', type=str, help='')
     parser.add_argument('-o','--impalaPort', metavar='impalaPort', type=str, help='')
-    parser.add_argument('-pl', '--prescricaoLimiar', metavar='prescricaoLimiar', type=int, default=7, help='')
+    parser.add_argument('-pl', '--prescricaoLimiar', metavar='prescricaoLimiar', type=int, default=90, help='')
     args = parser.parse_args()
 
     options = {
