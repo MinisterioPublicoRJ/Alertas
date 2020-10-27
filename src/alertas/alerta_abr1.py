@@ -10,7 +10,7 @@ columns = [
 ]
 
 
-def alerta_lista_procedimentos(options):
+def alerta_abr1(options):
     df = spark.sql("""
      WITH procedimentos as (
         SELECT docu_orgi_orga_dk_responsavel
