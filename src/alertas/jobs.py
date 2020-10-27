@@ -28,6 +28,7 @@ from alerta_ppfp import alerta_ppfp
 from alerta_prcr import alerta_prcr
 from alerta_ro import alerta_ro
 from alerta_vadf import alerta_vadf
+from alerta_abr1 import alerta_abr1
 
 
 class AlertaSession:
@@ -47,6 +48,7 @@ class AlertaSession:
         'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30],
         'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
         'RO': ['ROs não entregues pelas delegacias', alerta_ro],
+        'ABR1': ['Procedimentos que têm mais de 1 ano para comunicar ao CSMP', alerta_abr1],
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
