@@ -146,13 +146,13 @@ class AlertaSession:
         print('Verificando alertas do tipo: {0}'.format(alerta))
         with Timer():
             dataframe = func(self.options)
-            dataframe = dataframe.withColumn("alrt_docu_dk", lit(None)) if "alrt_docu_dk" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_docu_nr_mp", lit(None)) if "alrt_docu_nr_mp" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_docu_nr_externo", lit(None)) if "alrt_docu_nr_externo" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_docu_etiqueta", lit(None)) if "alrt_docu_etiqueta" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_docu_classe", lit(None)) if "alrt_docu_classe" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_docu_date", lit(None)) if "alrt_docu_date" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_classe_hierarquia", lit(None)) if "alrt_classe_hierarquia" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_docu_dk", lit(None).cast(IntegerType())) if "alrt_docu_dk" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_docu_nr_mp", lit(None).cast(StringType())) if "alrt_docu_nr_mp" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_docu_nr_externo", lit(None).cast(StringType())) if "alrt_docu_nr_externo" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_docu_etiqueta", lit(None).cast(StringType())) if "alrt_docu_etiqueta" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_docu_classe", lit(None).cast(StringType())) if "alrt_docu_classe" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_docu_date", lit(None).cast(TimestampType())) if "alrt_docu_date" not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn("alrt_classe_hierarquia", lit(None).cast(StringType())) if "alrt_classe_hierarquia" not in dataframe.columns else dataframe
             dataframe = dataframe.withColumn('alrt_dk', lit('NO_ID')) if 'alrt_dk' not in dataframe.columns else dataframe
             dataframe = dataframe.withColumn('alrt_dias_passados', lit(-1)) if 'alrt_dias_passados' not in dataframe.columns else dataframe
             dataframe = dataframe.withColumn('alrt_sigla', lit(alerta).cast(StringType())) if 'alrt_sigla' not in dataframe.columns else dataframe
