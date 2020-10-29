@@ -11,6 +11,12 @@ columns = [
 
 
 def alerta_abr1(options):
+    #  cria este alerta para todos os meses se estiver em ambiente de DEV
+    if options["schema_exadata_aux"].endswith("_dev"):
+        months = "%s" % ",".join(str(i) for i in range(1, 13))
+    else:
+        months = "4"
+
     df = spark.sql("""
      WITH procedimentos as (
         SELECT docu_orgi_orga_dk_responsavel
@@ -22,14 +28,14 @@ def alerta_abr1(options):
             AND NOT docu_tpst_dk = 11
             AND (
                 year(current_date()) = 2020 AND month(current_date()) = 11
-                OR month(current_date()) = 4
+                OR month(current_date()) IN ({months})
             )
     )
     SELECT docu_orgi_orga_dk_responsavel AS id_orgao, COUNT(1) AS n_procedimentos
     FROM procedimentos
-    INNER JOIN {0}.atualizacao_pj_pacote pac ON pac.id_orgao = docu_orgi_orga_dk_responsavel
+    INNER JOIN {schema_aux}.atualizacao_pj_pacote pac ON pac.id_orgao = docu_orgi_orga_dk_responsavel
 	AND UPPER(orgi_nm_orgao) LIKE '%TUTELA%'
     GROUP BY docu_orgi_orga_dk_responsavel
-    """.format(options["schema_exadata_aux"]))
+    """.format(schema_aux=options["schema_exadata_aux"], months=months))
 
     return df.select(columns)
