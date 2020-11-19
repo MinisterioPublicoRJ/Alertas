@@ -29,6 +29,7 @@ from alerta_prcr import alerta_prcr
 from alerta_ro import alerta_ro
 from alerta_vadf import alerta_vadf
 from alerta_abr1 import alerta_abr1
+from alerta_isps import alerta_isps
 
 
 class AlertaSession:
@@ -49,15 +50,16 @@ class AlertaSession:
         'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
         'RO': ['ROs não entregues pelas delegacias', alerta_ro],
         'ABR1': ['Procedimentos que têm mais de 1 ano para comunicar ao CSMP', alerta_abr1],
+        'ISPS': ['Indicadores de Saneamento em Vermelho', alerta_isps]
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
     STATUS_ERROR = "ERROR"
 
-    TEMP_TABLE_NAME = "temp_mmps_alertas"
-    FINAL_TABLE_NAME = "mmps_alertas"
-    SESSION_TABLE_NAME = "mmps_alerta_sessao"
-    PRCR_DETALHE_TABLE_NAME = "mmps_alerta_detalhe_prcr"
+    TEMP_TABLE_NAME = "test_temp_mmps_alertas"
+    FINAL_TABLE_NAME = "test_mmps_alertas"
+    SESSION_TABLE_NAME = "test_mmps_alerta_sessao"
+    PRCR_DETALHE_TABLE_NAME = "test_mmps_alerta_detalhe_prcr"
 
     # Ordem em que as colunas estão salvas na tabela final
     # Esta ordem deve ser mantida por conta do insertInto que é realizado
