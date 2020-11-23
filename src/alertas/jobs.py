@@ -13,6 +13,7 @@ from pyspark.sql.utils import AnalysisException
 from base import spark
 from pyspark.sql import DataFrame
 from timer import Timer
+from alerta_bdpa import alerta_bdpa
 from alerta_dctj import alerta_dctj
 from alerta_dntj import alerta_dntj
 from alerta_dord import alerta_dord
@@ -37,6 +38,7 @@ class AlertaSession:
         # 'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
         # 'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
         'GATE': ['Documentos com novas ITs do GATE', alerta_gate],
+        'BDPA': ['Baixas a DP em atraso', alerta_bdpa],
         'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
         'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
         # 'OFFP': ['Ofício fora do prazo', alerta_offp],
