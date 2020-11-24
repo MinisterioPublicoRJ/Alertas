@@ -10,8 +10,7 @@ def alerta_isps(options):
             SELECT MAX(ano_referencia) as max_ano
             FROM {0}.plataforma_amb_saneamento_snis_info_indic_agua
         """.format(options["schema_opengeo"])
-    )
-    ano_referencia.createOrReplaceTempView('ANO_REFERENCIA')
+    ).collect()[0]['max_ano']
 
     # Dados de saneamento são liberados a cada ano
     # Assim, não é necessário calculá-los a cada vez que rodar o alerta
@@ -19,8 +18,13 @@ def alerta_isps(options):
         resultados = spark.sql("""
             SELECT alrt_orgi_orga_dk, alrt_descricao, alrt_classe_hierarquia
             FROM {0}.{1}
-            JOIN ANO_REFERENCIA ON ano_referencia = max_ano
-        """.format(options['schema_exadata_aux'], options['isps_tabela_aux']))
+            WHERE ano_referencia = {2}
+        """.format(
+                options['schema_exadata_aux'],
+                options['isps_tabela_aux'],
+                ano_referencia
+            )
+        )
         if resultados.count() > 0:
             return resultados
     except:
@@ -30,7 +34,7 @@ def alerta_isps(options):
         WITH agregados AS (
             SELECT cod_mun, municipio, in009, in013, in023, in049
             FROM {0}.plataforma_amb_saneamento_snis_info_indic_agua
-            JOIN ANO_REFERENCIA ON ano_referencia = max_ano
+            WHERE ano_referencia = {1}
             AND cod_prest IS NULL
         ),
         indicadores AS (
@@ -57,7 +61,7 @@ def alerta_isps(options):
         SELECT municipio, ind4 as alrt_descricao 
         FROM indicadores
         WHERE ind4 IS NOT NULL
-    """.format(options["schema_opengeo"]))
+    """.format(options["schema_opengeo"], ano_referencia))
     agua.createOrReplaceTempView('AGUA')
 
 
@@ -65,7 +69,7 @@ def alerta_isps(options):
         WITH agregados AS (
             SELECT cod_mun, municipio, in015, in016, in024, in046
             FROM {0}.plataforma_amb_saneamento_snis_info_indic_esgoto
-            JOIN ANO_REFERENCIA ON ano_referencia = max_ano
+            WHERE ano_referencia = {1}
             AND cod_prest IS NULL
         ),
         indicadores AS (
@@ -92,7 +96,7 @@ def alerta_isps(options):
         SELECT municipio, ind4 as alrt_descricao 
         FROM indicadores
         WHERE ind4 IS NOT NULL
-    """.format(options["schema_opengeo"]))
+    """.format(options["schema_opengeo"], ano_referencia))
     esgoto.createOrReplaceTempView('ESGOTO')
 
     # Tabela de drenagem não possui os agregados para o estado diretamente
@@ -114,7 +118,7 @@ def alerta_isps(options):
                 CASE WHEN A.in041 > R.in041 THEN 'Parcela da População Impactada por Eventos Hidrológicos' ELSE NULL END AS ind4
             FROM {0}.plataforma_amb_saneamento_snis_info_indic_drenagem A
             JOIN agregados R ON 1 = 1
-            JOIN ANO_REFERENCIA ON ano_referencia = max_ano
+            WHERE ano_referencia = {1}
         )
         SELECT municipio, ind1 as alrt_descricao 
         FROM indicadores
@@ -131,7 +135,7 @@ def alerta_isps(options):
         SELECT municipio, ind4 as alrt_descricao 
         FROM indicadores
         WHERE ind4 IS NOT NULL
-    """.format(options["schema_opengeo"]))
+    """.format(options["schema_opengeo"], ano_referencia))
     drenagem.createOrReplaceTempView('DRENAGEM')
 
     INDICADORES = spark.sql("""

@@ -37,30 +37,30 @@ class AlertaSession:
         # 'DCTJ': ['Documentos criminais sem retorno do TJ a mais de 60 dias', alerta_dctj],
         # 'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
         # 'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
-        # 'GATE': ['Documentos com novas ITs do GATE', alerta_gate],
-        # 'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
-        # 'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
+        'GATE': ['Documentos com novas ITs do GATE', alerta_gate],
+        'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
+        'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
         # 'OFFP': ['Ofício fora do prazo', alerta_offp],
-        # 'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi],
-        # 'PA1A': ['PAs sem prorrogação por mais de um ano', alerta_pa1a],
-        # 'PPFP': ['Procedimento Preparatório fora do prazo', alerta_ppfp],
-        # 'PRCR': ['Processo possivelmente prescrito', alerta_prcr],
-        # 'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf],
-        # 'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30],
-        # 'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
-        # 'RO': ['ROs não entregues pelas delegacias', alerta_ro],
-        # 'ABR1': ['Procedimentos que têm mais de 1 ano para comunicar ao CSMP', alerta_abr1],
+        'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi],
+        'PA1A': ['PAs sem prorrogação por mais de um ano', alerta_pa1a],
+        'PPFP': ['Procedimento Preparatório fora do prazo', alerta_ppfp],
+        'PRCR': ['Processo possivelmente prescrito', alerta_prcr],
+        'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf],
+        'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30],
+        'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
+        'RO': ['ROs não entregues pelas delegacias', alerta_ro],
+        'ABR1': ['Procedimentos que têm mais de 1 ano para comunicar ao CSMP', alerta_abr1],
         'ISPS': ['Indicadores de Saneamento em Vermelho', alerta_isps]
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
     STATUS_ERROR = "ERROR"
 
-    TEMP_TABLE_NAME = "test_temp_mmps_alertas"
-    FINAL_TABLE_NAME = "test_mmps_alertas"
-    SESSION_TABLE_NAME = "test_mmps_alerta_sessao"
-    PRCR_DETALHE_TABLE_NAME = "test_mmps_alerta_detalhe_prcr"
-    ISPS_AUX_TABLE_NAME = "test_mmps_alerta_isps_aux"
+    TEMP_TABLE_NAME = "temp_mmps_alertas"
+    FINAL_TABLE_NAME = "mmps_alertas"
+    SESSION_TABLE_NAME = "mmps_alerta_sessao"
+    PRCR_DETALHE_TABLE_NAME = "mmps_alerta_detalhe_prcr"
+    ISPS_AUX_TABLE_NAME = "mmps_alerta_isps_aux"
 
     # Ordem em que as colunas estão salvas na tabela final
     # Esta ordem deve ser mantida por conta do insertInto que é realizado
