@@ -30,6 +30,7 @@ from alerta_prcr import alerta_prcr
 from alerta_ro import alerta_ro
 from alerta_vadf import alerta_vadf
 from alerta_abr1 import alerta_abr1
+from alerta_isps import alerta_isps
 
 
 class AlertaSession:
@@ -51,6 +52,7 @@ class AlertaSession:
         'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
         'RO': ['ROs não entregues pelas delegacias', alerta_ro],
         'ABR1': ['Procedimentos que têm mais de 1 ano para comunicar ao CSMP', alerta_abr1],
+        'ISPS': ['Indicadores de Saneamento em Vermelho', alerta_isps]
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
@@ -60,6 +62,7 @@ class AlertaSession:
     FINAL_TABLE_NAME = "mmps_alertas"
     SESSION_TABLE_NAME = "mmps_alerta_sessao"
     PRCR_DETALHE_TABLE_NAME = "mmps_alerta_detalhe_prcr"
+    ISPS_AUX_TABLE_NAME = "mmps_alerta_isps_aux"
 
     # Ordem em que as colunas estão salvas na tabela final
     # Esta ordem deve ser mantida por conta do insertInto que é realizado
@@ -86,6 +89,7 @@ class AlertaSession:
         self.options = options
         # Setando o nome das tabelas de detalhe aqui, podemos centralizá-las como atributos de AlertaSession
         self.options['prescricao_tabela_detalhe'] = self.PRCR_DETALHE_TABLE_NAME
+        self.options['isps_tabela_aux'] = self.ISPS_AUX_TABLE_NAME
         self.session_id = str(uuid.uuid4().int & (1<<60)-1)
         self.start_session = self.now()
         self.end_session = None
