@@ -3,6 +3,7 @@ from pyspark.sql.types import IntegerType, DateType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 
 columns = [
@@ -26,6 +27,10 @@ columns_alias = [
     col('alrt_docu_date'),  
     col('alrt_orgi_orga_dk'),
     col('alrt_classe_hierarquia')
+]
+
+key_columns = [
+    col('alrt_docu_dk')
 ]
 
 def alerta_prcr(options):
@@ -240,5 +245,7 @@ def alerta_prcr(options):
         FROM MAX_MIN_STATUS T
     """)
     resultado = resultado.filter('alrt_sigla IS NOT NULL').select(columns_alias + ['alrt_sigla', 'alrt_descricao'])
+
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
 
     return resultado

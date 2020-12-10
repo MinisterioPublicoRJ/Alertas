@@ -3,6 +3,7 @@ from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 
 columns = [
@@ -16,6 +17,12 @@ columns = [
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
     col('elapsed').alias('alrt_dias_passados'),
+    col('alrt_key')
+]
+
+key_columns = [
+    col('docu_dk'),
+    col('itcn_dk')
 ]
 
 
@@ -34,5 +41,7 @@ def alerta_gate(options):
     doc_vista_anterior = doc_vista.filter('ITCN_DT_CADASTRO > DT_MAX_VISTA')
     resultado = doc_sem_vista.union(doc_vista_anterior).\
         withColumn('elapsed', lit(datediff(current_date(), 'ITCN_DT_CADASTRO')).cast(IntegerType()))
+
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
 
     return resultado.select(columns)

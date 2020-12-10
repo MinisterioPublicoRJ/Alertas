@@ -2,6 +2,7 @@ from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -13,6 +14,11 @@ columns = [
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
     col('elapsed'),
+]
+
+key_columns = [
+    col('alrt_docu_dk'),
+    col('alrt_docu_date')  # Data do andamento mais recente
 ]
 
 ciencias = [6374, 6375, 6376, 6377, 6378]
@@ -91,6 +97,8 @@ def alerta_dt2i(options):
         min("elapsed").alias("alrt_dias_passados") 
     )
 
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
+
     return resultado.select([
         'alrt_docu_dk', 
         'alrt_docu_nr_mp', 
@@ -101,4 +109,5 @@ def alerta_dt2i(options):
         'alrt_orgi_orga_dk',
         'alrt_classe_hierarquia',
         'alrt_dias_passados',
+        'alrt_key,'
     ])

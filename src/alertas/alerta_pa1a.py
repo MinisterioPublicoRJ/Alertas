@@ -3,6 +3,7 @@ from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 
 columns = [
@@ -15,11 +16,17 @@ columns = [
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
     col('elapsed').alias('alrt_dias_passados'),
+    col('alrt_key')
 ]
 
 proto_columns = [
     'docu_dk', 'docu_nr_mp', 'docu_nr_externo', 'docu_tx_etiqueta', 'docu_dt_cadastro',
     'cldc_ds_classe', 'docu_orgi_orga_dk_responsavel', 'cldc_ds_hierarquia'
+]
+
+key_columns = [
+    col('docu_dk'),
+    col('dt_fim_prazo')
 ]
 
 def alerta_pa1a(options):
@@ -62,5 +69,7 @@ def alerta_pa1a(options):
         withColumn('elapsed', lit(datediff(current_date(), 'dt_fim_prazo')).cast(IntegerType()))
 
     resultado = doc_prorrogado.union(doc_nao_prorrogado)
+
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
     
     return resultado.filter('elapsed > 0').select(columns)

@@ -2,8 +2,9 @@
 from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
-
 from base import spark
+from utils import uuidsha
+
 
 mov_columns = [
     col('docu_dk'),
@@ -26,6 +27,12 @@ columns = [
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
     col('elapsed').alias('alrt_dias_passados'),
+    col('alrt_key')
+]
+
+key_columns = [
+    col('docu_dk'),
+    col('dt_fim_prazo')
 ]
 
 def alerta_bdpa(options):
@@ -89,4 +96,6 @@ def alerta_bdpa(options):
         withColumn("dt_fim_prazo", expr("date_add(dt_guia, stao_nr_dias_prazo)")).\
         withColumn('elapsed', lit(datediff(current_date(), 'dt_fim_prazo')).cast(IntegerType()))
 
-    return doc_lost.filter('elapsed > 0').select(columns)
+    doc_lost = doc_lost.filter('elapsed > 0').withColumn('alrt_key', uuidsha(*key_columns))
+
+    return doc_lost.select(columns)

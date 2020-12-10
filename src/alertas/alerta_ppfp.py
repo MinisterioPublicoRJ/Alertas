@@ -3,6 +3,7 @@ from pyspark.sql.types import IntegerType, StringType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 
 columns = [
@@ -17,6 +18,12 @@ columns = [
     col('elapsed').alias('alrt_dias_passados'),
     col('alrt_sigla'),
     col('alrt_descricao'),
+    col('alrt_key')
+]
+
+key_columns = [
+    col('docu_dk'),
+    col('stao_dk')  # Um mesmo documento pode ou não ter tido prorrogação
 ]
 
 def alerta_ppfp(options):
@@ -65,5 +72,7 @@ def alerta_ppfp(options):
         withColumn('alrt_descricao', lit('Procedimento Preparatório próximo de vencer').cast(StringType()))
 
     resultado = resultado_ppfp.union(resultado_pppv)
+
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
     
     return resultado.select(columns).distinct()

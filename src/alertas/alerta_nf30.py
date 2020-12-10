@@ -3,6 +3,7 @@ from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 
 aut_col = [
@@ -20,6 +21,12 @@ columns = [
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
     col('elapsed').alias('alrt_dias_passados'),
+    col('alrt_key')
+]
+
+key_columns = [
+    col('docu_dk'),
+    col('data_autuacao')
 ]
 
 def alerta_nf30(options):
@@ -55,5 +62,7 @@ def alerta_nf30(options):
     resultado = doc_nao_revisado.\
         withColumn('elapsed', lit(datediff(current_date(), 'data_autuacao')).cast(IntegerType())).\
         filter('elapsed > 120')
+
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
 
     return resultado.select(columns) 

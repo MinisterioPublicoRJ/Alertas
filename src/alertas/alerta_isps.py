@@ -3,6 +3,21 @@ from pyspark.sql.functions import *
 from pyspark.sql.types import IntegerType
 
 from base import spark
+from utils import uuidsha
+
+
+columns = [
+    col('alrt_orgi_orga_dk'),
+    col('alrt_descricao'),
+    col('alrt_classe_hierarquia'),
+    col('alrt_key')
+]
+
+key_columns = [
+    col('alrt_descricao'),
+    col('alrt_classe_hierarquia'),
+    col('ano_referencia')
+]
 
 
 def alerta_isps(options):
@@ -16,7 +31,7 @@ def alerta_isps(options):
     # Assim, não é necessário calculá-los a cada vez que rodar o alerta
     try:
         resultados = spark.sql("""
-            SELECT alrt_orgi_orga_dk, alrt_descricao, alrt_classe_hierarquia
+            SELECT alrt_orgi_orga_dk, alrt_descricao, alrt_classe_hierarquia, alrt_key
             FROM {0}.{1}
             WHERE ano_referencia = {2}
         """.format(
@@ -157,9 +172,11 @@ def alerta_isps(options):
     resultados.createOrReplaceTempView('RESULTADOS_ISPS')
     spark.catalog.cacheTable("RESULTADOS_ISPS")
 
-    resultados.withColumn('ano_referencia', lit(2018).cast(IntegerType()))\
-        .write.mode('append').saveAsTable('{}.{}'.format(
-            options['schema_exadata_aux'], options['isps_tabela_aux']
-        ))
+    resultados = resultados.withColumn('ano_referencia', lit(ano_referencia).cast(IntegerType()))\
+        .withColumn('alrt_key', uuidsha(*key_columns))
 
-    return resultados
+    resultados.write.mode('append').saveAsTable('{}.{}'.format(
+        options['schema_exadata_aux'], options['isps_tabela_aux']
+    ))
+
+    return resultados.select(columns)

@@ -3,6 +3,7 @@ from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -14,6 +15,12 @@ columns = [
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
     col('elapsed').alias('alrt_dias_passados'),
+    col('alrt_key')
+]
+
+key_columns = [
+    col('docu_dk'),
+    col('dt_fim_prazo')
 ]
 
 def alerta_offp(options):
@@ -39,5 +46,7 @@ def alerta_offp(options):
     resultado = doc_sub_andamento.filter('elapsed > 0').\
         groupBy(columns[:-1]).agg({'elapsed': 'max'}).\
         withColumnRenamed('max(elapsed)', 'alrt_dias_passados')
+
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
     
     return resultado

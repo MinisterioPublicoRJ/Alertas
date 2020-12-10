@@ -1,7 +1,9 @@
 #-*-coding:utf-8-*-
+from pyspark.sql.types import IntegerType, StringType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
@@ -11,7 +13,8 @@ columns = [
     col('cldc_ds_classe').alias('alrt_docu_classe'),
     col('docu_dt_cadastro').alias('alrt_docu_date'),  
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia')
+    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
+    col('alrt_key')
 ]
 
 col_vict = [
@@ -22,6 +25,10 @@ col_vict = [
     col('pesf_nm_mae').alias('vict_mae'),
     col('pesf_dt_nasc').alias('vict_nasc'),  
     col('docu_dk').alias('vict_docu_dk')
+]
+
+key_columns = [
+    col('docu_dk')
 ]
 
 def alerta_mvvd(options):
@@ -61,5 +68,7 @@ def alerta_mvvd(options):
         SELECT * 
         FROM doc_vitima d JOIN vitimas_passadas v ON d.pesf_nm_pessoa_fisica = v.vict_nome AND d.pesf_dt_nasc = v.vict_nasc AND v.vict_docu_dk != d.docu_dk
     """)
+
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
 
     return resultado.select(columns).distinct()
