@@ -148,7 +148,7 @@ def alerta_isps(options):
     INDICADORES.createOrReplaceTempView('INDICADORES')
 
     resultados = spark.sql("""
-        SELECT P.id_orgao as alrt_orgi_orga_dk, I.alrt_descricao, I.municipio as alrt_classe_hierarquia
+        SELECT P.id_orgao as alrt_orgi_orga_dk, I.alrt_descricao, I.municipio as alrt_classe_hierarquia, concat_ws('_', P.id_orgao, I.alrt_descricao, I.municipio) as alrt_dk
         FROM {0}.atualizacao_pj_pacote P
         JOIN {1}.institucional_orgaos_meio_ambiente M ON M.cod_orgao = P.id_orgao
         JOIN INDICADORES I ON I.municipio = M.comarca
