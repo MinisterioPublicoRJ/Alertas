@@ -16,7 +16,7 @@ def alerta_isps(options):
     # Assim, não é necessário calculá-los a cada vez que rodar o alerta
     try:
         resultados = spark.sql("""
-            SELECT alrt_orgi_orga_dk, alrt_descricao, alrt_classe_hierarquia
+            SELECT alrt_orgi_orga_dk, alrt_descricao, alrt_classe_hierarquia, alrt_dk
             FROM {0}.{1}
             WHERE ano_referencia = {2}
         """.format(
