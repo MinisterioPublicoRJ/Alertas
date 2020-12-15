@@ -1,8 +1,21 @@
 #-*-coding:utf-8-*-
+import re
+import unicodedata
+
 from pyspark.sql.functions import *
 from pyspark.sql.types import IntegerType
 
 from base import spark
+
+
+def custom_slugify(value):
+    text = unicodedata.normalize('NFD', value)
+    text = text.encode('ascii', 'ignore')
+    text = text.decode("utf-8")
+    text = re.sub(r"\s+", "-", text)
+    return text.lower()
+
+spark.udf.register("custom_slugify", custom_slugify)
 
 
 def alerta_isps(options):
@@ -148,7 +161,10 @@ def alerta_isps(options):
     INDICADORES.createOrReplaceTempView('INDICADORES')
 
     resultados = spark.sql("""
-        SELECT P.id_orgao as alrt_orgi_orga_dk, I.alrt_descricao, I.municipio as alrt_classe_hierarquia, concat_ws('_', P.id_orgao, I.alrt_descricao, I.municipio) as alrt_dk
+        SELECT P.id_orgao as alrt_orgi_orga_dk,
+            I.alrt_descricao,
+            I.municipio as alrt_classe_hierarquia,
+            custom_slugify(concat_ws('_', P.id_orgao, I.alrt_descricao, I.municipio)) as alrt_dk
         FROM {0}.atualizacao_pj_pacote P
         JOIN {1}.institucional_orgaos_meio_ambiente M ON M.cod_orgao = P.id_orgao
         JOIN INDICADORES I ON I.municipio = M.comarca
