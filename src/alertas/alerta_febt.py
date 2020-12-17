@@ -15,7 +15,7 @@ def alerta_febt(options):
     WITH ultimo_ro_enviado AS (
         SELECT
             CAST(substring(proc_numero, 0, 3) AS INTEGER) as numero_delegacia,
-            datediff(current_timestamp(), MAX(proc_data)) diff_ultimo_envio
+            datediff(current_timestamp(), MAX(data_liberacao)) diff_ultimo_envio
         FROM {0}.seg_pub_in_pol_procedimento
         GROUP BY numero_delegacia
     )
