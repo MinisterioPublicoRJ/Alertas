@@ -31,6 +31,7 @@ from alerta_ro import alerta_ro
 from alerta_vadf import alerta_vadf
 from alerta_abr1 import alerta_abr1
 from alerta_isps import alerta_isps
+from alerta_febt import alerta_febt
 
 
 class AlertaSession:
@@ -52,7 +53,8 @@ class AlertaSession:
         'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
         'RO': ['ROs não entregues pelas delegacias', alerta_ro],
         'ABR1': ['Procedimentos que têm mais de 1 ano para comunicar ao CSMP', alerta_abr1],
-        'ISPS': ['Indicadores de Saneamento em Vermelho', alerta_isps]
+        'ISPS': ['Indicadores de Saneamento em Vermelho', alerta_isps],
+        'FEBT': ['Mais de 30 dias sem novo RO', alerta_febt],
     }
     STATUS_RUNNING = "RUNNING"
     STATUS_FINISHED = "FINISHED"
