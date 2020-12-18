@@ -145,6 +145,8 @@ class AlertaSession:
             spark.catalog.cacheTable("vista")
             spark.sql("from vista").count()
 
+            # Deixar aqui por enquanto, para corrigir mais rapidamente o bug
+            # Será necessária uma mudança maior de padronização mais à frente
             spark.sql("""
                 SELECT D.*
                 FROM documento D
