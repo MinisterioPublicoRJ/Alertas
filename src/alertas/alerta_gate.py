@@ -1,5 +1,5 @@
 #-*-coding:utf-8-*-
-from pyspark.sql.types import IntegerType
+from pyspark.sql.types import IntegerType, StringType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -35,4 +35,5 @@ def alerta_gate(options):
     resultado = doc_sem_vista.union(doc_vista_anterior).\
         withColumn('elapsed', lit(datediff(current_date(), 'ITCN_DT_CADASTRO')).cast(IntegerType()))
 
+    resultado = resultado.withColumn("itcn_dk", col("itcn_dk").cast(StringType()))
     return resultado.select(columns)
