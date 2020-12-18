@@ -23,9 +23,8 @@ proto_columns = [
 ]
 
 def alerta_pa1a(options):
-    documento = spark.sql("from documento").\
-        filter('docu_tpst_dk != 11').\
-        filter('docu_fsdc_dk = 1').\
+    documento = spark.sql("from documentos_ativos").\
+        filter('docu_tpst_dk != 3').\
         filter("""docu_cldc_dk in (
             51105, 51106, 51107, 51108, 51109, 51110, 51111, 51112, 51113, 51114, 51115, 51116, 51117, 
             51118, 51119, 51120, 51121, 51175, 51176, 51177, 51179, 51180, 51181, 51182, 51183, 51216
