@@ -1,4 +1,5 @@
 #-*-coding:utf-8-*-
+from pyspark.sql.types import IntegerType, StringType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -26,5 +27,6 @@ def alerta_febt(options):
     JOIN {1}.tb_pip_cisp tpc ON ure.numero_delegacia = tpc.cisp_codigo
         AND ure.diff_ultimo_envio > 30
     """.format(options["schema_opengeo"], options["schema_exadata_aux"]))
+    df = df.withColumn("numero_delegacia", col("numero_delegacia").cast(StringType()))
 
     return df.select(columns)

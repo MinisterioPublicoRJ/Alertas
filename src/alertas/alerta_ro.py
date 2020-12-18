@@ -1,4 +1,5 @@
 #-*-coding:utf-8-*-
+from pyspark.sql.types import IntegerType, StringType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -32,5 +33,6 @@ def alerta_ro(options):
     JOIN {1}.tb_pip_cisp tpc ON rqf.numero_delegacia = tpc.cisp_codigo
     WHERE rqf.qtd_falta >= 1
     """.format(options["schema_opengeo"], options["schema_exadata_aux"]))
+    df = df.withColumn("numero_delegacia", col("numero_delegacia").cast(StringType()))
 
     return df.select(columns)
