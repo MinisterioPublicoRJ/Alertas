@@ -8,7 +8,8 @@ from base import spark
 columns = [
     col('numero_delegacia').alias('alrt_dk'),
     col('pip_codigo').alias('alrt_orgi_orga_dk'),
-    col('qtd_falta').alias('alrt_dias_passados')
+    col('qtd_falta').alias('alrt_dias_passados'),
+    col('cisp_nome_apresentacao').alias('classe_hierarquia'),
 ]
 
 
