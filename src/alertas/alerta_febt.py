@@ -23,7 +23,8 @@ def alerta_febt(options):
     )
     SELECT
         numero_delegacia,
-        pip_codigo
+        pip_codigo,
+        cisp_nome_apresentacao
     FROM ultimo_ro_enviado ure
     JOIN {1}.tb_pip_cisp tpc ON ure.numero_delegacia = tpc.cisp_codigo
         AND ure.diff_ultimo_envio > 30
