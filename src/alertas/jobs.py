@@ -34,55 +34,84 @@ from alerta_isps import alerta_isps
 
 
 class AlertaSession:
-    alerta_list = {
-        # 'DCTJ': ['Documentos criminais sem retorno do TJ a mais de 60 dias', alerta_dctj],
-        # 'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
-        # 'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
-        #'GATE': ['Documentos com novas ITs do GATE', alerta_gate],
-        # 'BDPA': ['Baixas a DP em atraso', alerta_bdpa],
-        #'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a],
-        'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd],
-        # 'OFFP': ['Ofício fora do prazo', alerta_offp],
-        #'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi],
-        #'PA1A': ['PAs sem prorrogação por mais de um ano', alerta_pa1a],
-        #'PPFP': ['Procedimento Preparatório fora do prazo', alerta_ppfp],
-        #'PRCR': ['Processo possivelmente prescrito', alerta_prcr],
-        #'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf],
-        #'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30],
-        #'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i],
-        #'RO': ['ROs não entregues pelas delegacias', alerta_ro],
-        # 'ABR1': ['Procedimentos que têm mais de 1 ano para comunicar ao CSMP', alerta_abr1],
-        #'ISPS': ['Indicadores de Saneamento em Vermelho', alerta_isps]
-    }
-    STATUS_RUNNING = "RUNNING"
-    STATUS_FINISHED = "FINISHED"
-    STATUS_ERROR = "ERROR"
+    # Table Names
+    ABR1_TABLE_NAME = 'mmps_alertas_abr1'
+    RO_TABLE_NAME = 'mmps_alertas_ro'
+    COMP_TABLE_NAME = 'mmps_alertas_comp'
+    ISPS_TABLE_NAME = 'mmps_alertas_isps'
+    MGP_TABLE_NAME = 'mmps_alertas_mgp'
+    PPFP_TABLE_NAME = 'mmps_alertas_ppfp'
+    GATE_TABLE_NAME = 'mmps_alertas_gate'
+    VADF_TABLE_NAME = 'mmps_alertas_vadf'
+    OUVI_TABLE_NAME = 'mmps_alertas_ouvi'
 
-    TEMP_TABLE_NAME = "testkey_temp_mmps_alertas"
-    FINAL_TABLE_NAME = "testkey_mmps_alertas"
-    SESSION_TABLE_NAME = "testkey_mmps_alerta_sessao"
+    TABLE_NAMES = [
+        ABR1_TABLE_NAME,
+        RO_TABLE_NAME,
+        COMP_TABLE_NAME,
+        ISPS_TABLE_NAME,
+        MGP_TABLE_NAME,
+        PPFP_TABLE_NAME,
+        GATE_TABLE_NAME,
+        VADF_TABLE_NAME,
+        OUVI_TABLE_NAME,
+    ]
+
     PRCR_DETALHE_TABLE_NAME = "testkey_mmps_alerta_detalhe_prcr"
     ISPS_AUX_TABLE_NAME = "testkey_mmps_alerta_isps_aux"
 
     # Ordem em que as colunas estão salvas na tabela final
     # Esta ordem deve ser mantida por conta do insertInto que é realizado
-    COLUMN_ORDER = [
+    COLUMN_ORDER_BASE = ['alrt_key', 'alrt_sigla', 'alrt_orgi_orga_dk']
+    COLUMN_ORDER_ABR1 = COLUMN_ORDER_BASE + ['nr_procedimentos', 'ano_mes']
+    COLUMN_ORDER_RO = COLUMN_ORDER_BASE + [
+        'nr_delegacia',
+        'qt_ros_faltantes',
+        'max_proc'
+    ]
+    COLUMN_ORDER_COMP = COLUMN_ORDER_BASE + [
+        'contratacao',
+        'item',
+        'id_item',
+        'contrato_iditem'
+    ]
+    COLUMN_ORDER_ISPS = COLUMN_ORDER_BASE + [
+        'municipio',
+        'indicador',
+        'ano_referencia'
+    ]
+    COLUMN_ORDER_MGP = COLUMN_ORDER_BASE + [
         'alrt_docu_dk',
         'alrt_docu_nr_mp',
-        'alrt_docu_nr_externo',
-        'alrt_docu_etiqueta',
-        'alrt_docu_classe',
-        'alrt_docu_date',
-        'alrt_orgi_orga_dk',
-        'alrt_classe_hierarquia',
-        'alrt_dias_passados',
-        'alrt_dk',
-        'alrt_descricao',
-        'alrt_sigla',
-        'alrt_session',
-        'alrt_key',
-        'dt_partition'
+        'alrt_date_referencia',
+        'alrt_dias_referencia'
     ]
+    COLUMN_ORDER_PPFP = COLUMN_ORDER_MGP + ['stao_dk']
+    COLUMN_ORDER_GATE = COLUMN_ORDER_MGP + ['itcn_dk']
+    COLUMN_ORDER_VADF = COLUMN_ORDER_MGP + ['vist_dk']
+    COLUMN_ORDER_OUVI = COLUMN_ORDER_MGP + ['movi_dk']
+
+    alerta_list = {
+        # 'DCTJ': ['Documentos criminais sem retorno do TJ a mais de 60 dias', alerta_dctj],
+        # 'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
+        # 'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
+        'GATE': ['Documentos com novas ITs do GATE', alerta_gate, GATE_TABLE_NAME, COLUMN_ORDER_GATE],
+        'BDPA': ['Baixas a DP em atraso', alerta_bdpa, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        # 'OFFP': ['Ofício fora do prazo', alerta_offp],
+        'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi, OUVI_TABLE_NAME, COLUMN_ORDER_OUVI],
+        'PA1A': ['PAs sem prorrogação por mais de um ano', alerta_pa1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'PPFP': ['Procedimento Preparatório fora do prazo', alerta_ppfp, PPFP_TABLE_NAME, COLUMN_ORDER_PPFP],
+        'PRCR': ['Processo possivelmente prescrito', alerta_prcr, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf, VADF_TABLE_NAME, COLUMN_ORDER_VADF],
+        'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'RO': ['ROs não entregues pelas delegacias', alerta_ro, RO_TABLE_NAME, COLUMN_ORDER_RO],
+        'ABR1': ['Procedimentos que têm mais de 1 ano para comunicar ao CSMP', alerta_abr1, ABR1_TABLE_NAME, COLUMN_ORDER_ABR1],
+        'ISPS': ['Indicadores de Saneamento em Vermelho', alerta_isps, ISPS_TABLE_NAME, COLUMN_ORDER_ISPS],
+        # 'COMP': ['Compras fora do padrão', alerta_comp, COMP_TABLE_NAME]
+    }
 
     def __init__(self, options):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
@@ -91,46 +120,22 @@ class AlertaSession:
         # Setando o nome das tabelas de detalhe aqui, podemos centralizá-las como atributos de AlertaSession
         self.options['prescricao_tabela_detalhe'] = self.PRCR_DETALHE_TABLE_NAME
         self.options['isps_tabela_aux'] = self.ISPS_AUX_TABLE_NAME
-        self.session_id = str(uuid.uuid4().int & (1<<60)-1)
-        self.start_session = self.now()
-        self.end_session = None
-        self.status = self.STATUS_RUNNING
 
-        # Definir o schema no nome da tabela evita possíveis conflitos
+        self.hist_name = lambda x: x + '_hist'
+
+        # Definir o schema no nome da tabela temp evita possíveis conflitos
         # entre processos em produção e desenvolvimento
-        self.temp_table_with_schema = '{0}.{1}'.format(
-            options['schema_exadata_aux'],
-            self.TEMP_TABLE_NAME
-        )
+        self.temp_name = lambda x: '{0}.temp_{1}'.format(options['schema_exadata_aux'], x)
+
         # Evita que tabela temporária de processos anteriores com erro
         # influencie no resultado do processo atual.
-        spark.sql("DROP TABLE IF EXISTS {0}".format(self.temp_table_with_schema))
+        for table in self.TABLE_NAMES:
+            spark.sql("DROP TABLE IF EXISTS {0}".format(self.temp_name(table)))
 
     @staticmethod
     def now():
         return datetime.now()
-        
-    def wrapAlertas(self):
-        fields = [
-            StructField("ALRT_SESSION_DK", StringType(), True),
-            StructField("ALRT_SESSION_START", TimestampType(), True),
-            StructField("ALRT_SESSION_FINISH", TimestampType(), True),
-            StructField("ALRT_SESSION_STATUS", StringType(), True)
-        ]
-        schema = StructType(fields)
-
-        self.end_session = self.now()
-        if self.status == self.STATUS_RUNNING:
-            self.status = self.STATUS_FINISHED
-        
-        data = [(self.session_id, self.start_session, self.end_session, self.status)]
-        
-        session_df = spark.createDataFrame(data, schema)
-        session_df = session_df.withColumn("dt_partition", date_format(current_timestamp(), "yyyyMMdd"))
-        session_df.coalesce(1).write.format('parquet').saveAsTable(
-            '{0}.{1}'.format(self.options['schema_exadata_aux'], self.SESSION_TABLE_NAME),
-            mode='append')
-            
+    
     def generateAlertas(self):
         print('Verificando alertas existentes em {0}'.format(datetime.today()))
         with Timer():
@@ -144,28 +149,17 @@ class AlertaSession:
             spark.catalog.cacheTable("vista")
             spark.sql("from vista").count()
 
-            for alerta, (desc, func) in self.alerta_list.items():
-                self.generateAlerta(alerta, desc, func)
+            for alerta, (desc, func, table, columns) in self.alerta_list.items():
+                self.generateAlerta(alerta, desc, func, table, columns)
             self.write_dataframe()
-            self.wrapAlertas()
 
-    def generateAlerta(self, alerta, desc, func):
+    def generateAlerta(self, alerta, desc, func, table, columns):
         print('Verificando alertas do tipo: {0}'.format(alerta))
         with Timer():
             dataframe = func(self.options)
-            dataframe = dataframe.withColumn("alrt_docu_dk", lit(None).cast(IntegerType())) if "alrt_docu_dk" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_docu_nr_mp", lit(None).cast(StringType())) if "alrt_docu_nr_mp" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_docu_nr_externo", lit(None).cast(StringType())) if "alrt_docu_nr_externo" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_docu_etiqueta", lit(None).cast(StringType())) if "alrt_docu_etiqueta" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_docu_classe", lit(None).cast(StringType())) if "alrt_docu_classe" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_docu_date", lit(None).cast(TimestampType())) if "alrt_docu_date" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn("alrt_classe_hierarquia", lit(None).cast(StringType())) if "alrt_classe_hierarquia" not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn('alrt_dk', lit('NO_ID')) if 'alrt_dk' not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn('alrt_dias_passados', lit(-1)) if 'alrt_dias_passados' not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn('alrt_sigla', lit(alerta).cast(StringType())) if 'alrt_sigla' not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn('alrt_descricao', lit(desc).cast(StringType())) if 'alrt_descricao' not in dataframe.columns else dataframe
-            dataframe = dataframe.withColumn('alrt_session', lit(self.session_id).cast(StringType())).\
-                withColumn("dt_partition", date_format(current_timestamp(), "yyyyMMdd"))
+            # dataframe = dataframe.withColumn('alrt_sigla', lit(alerta).cast(StringType())) if 'alrt_sigla' not in dataframe.columns else dataframe
+            # dataframe = dataframe.withColumn('alrt_descricao', lit(desc).cast(StringType())) if 'alrt_descricao' not in dataframe.columns else dataframe
+
             # A chave DEVE ser definida dentro do alerta, senão a funcionalidade de dispensa pode não funcionar
             # formato sigla.chave.orgao
             dataframe = dataframe.withColumn('alrt_key', concat(
@@ -177,7 +171,7 @@ class AlertaSession:
                 )
             )
 
-            dataframe.write.mode("append").saveAsTable(self.temp_table_with_schema)
+            dataframe.select(columns).write.mode("append").saveAsTable(self.temp_name(table))
 
     def check_table_exists(self, schema, table_name):
         spark.sql("use %s" % schema)
@@ -185,15 +179,15 @@ class AlertaSession:
         return True if result_table_check > 0 else False
 
     def write_dataframe(self):
-        #print('Gravando alertas do tipo {0}'.format(self.alerta_list[alerta]))
         with Timer():
-            temp_table_df = spark.table(self.temp_table_with_schema)
+            for table in self.TABLE_NAMES:
+                temp_table_df = spark.table(self.temp_name(table))
 
-            is_exists_table_alertas = self.check_table_exists(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
-            table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], self.FINAL_TABLE_NAME)
-            if is_exists_table_alertas:
-                temp_table_df.select(self.COLUMN_ORDER).repartition(3).write.mode("overwrite").insertInto(table_name, overwrite=True)
-            else:
-                temp_table_df.select(self.COLUMN_ORDER).repartition(3).write.partitionBy("dt_partition").saveAsTable(table_name)
- 
-            spark.sql("drop table {0}".format(self.temp_table_with_schema))
+                table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], table)
+                temp_table_df.repartition(3).write.mode("overwrite").saveAsTable(table_name)
+
+                # hist_table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], self.hist_name(table))
+                # Salvar historico fazendo as verificacoes necessarias de particionamento
+                # temp_table_df.withColumn("dt_partition", date_format(current_timestamp(), "yyyyMMdd"))
+    
+                spark.sql("drop table {0}".format(self.temp_name(table)))
