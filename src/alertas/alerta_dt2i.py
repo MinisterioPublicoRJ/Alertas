@@ -7,18 +7,14 @@ from utils import uuidsha
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
     col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('docu_nr_externo').alias('alrt_docu_nr_externo'), 
-    col('docu_tx_etiqueta').alias('alrt_docu_etiqueta'), 
-    col('cldc_ds_classe').alias('alrt_docu_classe'),
     col('pcao_dt_andamento'),  
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
     col('elapsed'),
 ]
 
 key_columns = [
     col('alrt_docu_dk'),
-    col('alrt_docu_date')  # Data do andamento mais recente
+    col('alrt_date_referencia')  # Data do andamento mais recente
 ]
 
 ciencias = [6374, 6375, 6376, 6377, 6378]
@@ -93,8 +89,8 @@ def alerta_dt2i(options):
         "alrt_orgi_orga_dk",
         "alrt_classe_hierarquia"
     ]).agg(
-        max("pcao_dt_andamento").alias("alrt_docu_date"),
-        min("elapsed").alias("alrt_dias_passados") 
+        max("pcao_dt_andamento").alias("alrt_date_referencia"),
+        min("elapsed").alias("alrt_dias_referencia") 
     )
 
     resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
@@ -102,12 +98,8 @@ def alerta_dt2i(options):
     return resultado.select([
         'alrt_docu_dk', 
         'alrt_docu_nr_mp', 
-        'alrt_docu_nr_externo', 
-        'alrt_docu_etiqueta', 
-        'alrt_docu_classe',
-        'alrt_docu_date',  
+        'alrt_date_referencia',  
         'alrt_orgi_orga_dk',
-        'alrt_classe_hierarquia',
-        'alrt_dias_passados',
+        'alrt_dias_referencia',
         'alrt_key,'
     ])

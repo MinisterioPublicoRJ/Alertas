@@ -35,6 +35,8 @@ from alerta_isps import alerta_isps
 
 class AlertaSession:
     # Table Names
+    TYPES_TABLE_NAME = 'mmps_alertas_tipos'
+
     ABR1_TABLE_NAME = 'mmps_alertas_abr1'
     RO_TABLE_NAME = 'mmps_alertas_ro'
     COMP_TABLE_NAME = 'mmps_alertas_comp'
@@ -63,22 +65,22 @@ class AlertaSession:
     # Ordem em que as colunas estão salvas na tabela final
     # Esta ordem deve ser mantida por conta do insertInto que é realizado
     COLUMN_ORDER_BASE = ['alrt_key', 'alrt_sigla', 'alrt_orgi_orga_dk']
-    COLUMN_ORDER_ABR1 = COLUMN_ORDER_BASE + ['nr_procedimentos', 'ano_mes']
+    COLUMN_ORDER_ABR1 = COLUMN_ORDER_BASE + ['abr1_nr_procedimentos', 'abr1_ano_mes']
     COLUMN_ORDER_RO = COLUMN_ORDER_BASE + [
-        'nr_delegacia',
-        'qt_ros_faltantes',
-        'max_proc'
+        'ro_nr_delegacia',
+        'ro_qt_ros_faltantes',
+        'ro_max_proc'
     ]
     COLUMN_ORDER_COMP = COLUMN_ORDER_BASE + [
-        'contratacao',
-        'item',
-        'id_item',
-        'contrato_iditem'
+        'comp_contratacao',
+        'comp_item',
+        'comp_id_item',
+        'comp_contrato_iditem'
     ]
     COLUMN_ORDER_ISPS = COLUMN_ORDER_BASE + [
-        'municipio',
-        'indicador',
-        'ano_referencia'
+        'isps_municipio',
+        'isps_indicador',
+        'isps_ano_referencia'
     ]
     COLUMN_ORDER_MGP = COLUMN_ORDER_BASE + [
         'alrt_docu_dk',
@@ -86,31 +88,31 @@ class AlertaSession:
         'alrt_date_referencia',
         'alrt_dias_referencia'
     ]
-    COLUMN_ORDER_PPFP = COLUMN_ORDER_MGP + ['stao_dk']
-    COLUMN_ORDER_GATE = COLUMN_ORDER_MGP + ['itcn_dk']
-    COLUMN_ORDER_VADF = COLUMN_ORDER_MGP + ['vist_dk']
-    COLUMN_ORDER_OUVI = COLUMN_ORDER_MGP + ['movi_dk']
+    COLUMN_ORDER_PPFP = COLUMN_ORDER_MGP + ['alrt_stao_dk']
+    COLUMN_ORDER_GATE = COLUMN_ORDER_MGP + ['alrt_itcn_dk']
+    COLUMN_ORDER_VADF = COLUMN_ORDER_MGP + ['alrt_vist_dk']
+    COLUMN_ORDER_OUVI = COLUMN_ORDER_MGP + ['alrt_movi_dk']
 
     alerta_list = {
-        # 'DCTJ': ['Documentos criminais sem retorno do TJ a mais de 60 dias', alerta_dctj],
-        # 'DNTJ': ['Documentos não criminais sem retorno do TJ a mais de 120 dias', alerta_dntj],
-        # 'DORD': ['Documentos com Órgão Responsável possivelmente desatualizado', alerta_dord],
-        'GATE': ['Documentos com novas ITs do GATE', alerta_gate, GATE_TABLE_NAME, COLUMN_ORDER_GATE],
-        'BDPA': ['Baixas a DP em atraso', alerta_bdpa, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'IC1A': ['ICs sem prorrogação por mais de um ano', alerta_ic1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'MVVD': ['Documentos com vitimas recorrentes recebidos nos ultimos 30 dias', alerta_mvvd, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        # 'OFFP': ['Ofício fora do prazo', alerta_offp],
-        'OUVI': ['Expedientes de Ouvidoria (EO) pendentes de recebimento', alerta_ouvi, OUVI_TABLE_NAME, COLUMN_ORDER_OUVI],
-        'PA1A': ['PAs sem prorrogação por mais de um ano', alerta_pa1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'PPFP': ['Procedimento Preparatório fora do prazo', alerta_ppfp, PPFP_TABLE_NAME, COLUMN_ORDER_PPFP],
-        'PRCR': ['Processo possivelmente prescrito', alerta_prcr, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'VADF': ['Vistas abertas em documentos já fechados', alerta_vadf, VADF_TABLE_NAME, COLUMN_ORDER_VADF],
-        'NF30': ['Notícia de Fato a mais de 120 dias', alerta_nf30, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'DT2I': ['Movimento em processo de segunda instância', alerta_dt2i, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'RO': ['ROs não entregues pelas delegacias', alerta_ro, RO_TABLE_NAME, COLUMN_ORDER_RO],
-        'ABR1': ['Procedimentos que têm mais de 1 ano para comunicar ao CSMP', alerta_abr1, ABR1_TABLE_NAME, COLUMN_ORDER_ABR1],
-        'ISPS': ['Indicadores de Saneamento em Vermelho', alerta_isps, ISPS_TABLE_NAME, COLUMN_ORDER_ISPS],
-        # 'COMP': ['Compras fora do padrão', alerta_comp, COMP_TABLE_NAME]
+        # 'DCTJ': [alerta_dctj],
+        # 'DNTJ': [alerta_dntj],
+        # 'DORD': [alerta_dord],
+        'GATE': [alerta_gate, GATE_TABLE_NAME, COLUMN_ORDER_GATE],
+        'BDPA': [alerta_bdpa, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'IC1A': [alerta_ic1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'MVVD': [alerta_mvvd, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        # 'OFFP': [alerta_offp],
+        'OUVI': [alerta_ouvi, OUVI_TABLE_NAME, COLUMN_ORDER_OUVI],
+        'PA1A': [alerta_pa1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'PPFP': [alerta_ppfp, PPFP_TABLE_NAME, COLUMN_ORDER_PPFP],
+        'PRCR': [alerta_prcr, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'VADF': [alerta_vadf, VADF_TABLE_NAME, COLUMN_ORDER_VADF],
+        'NF30': [alerta_nf30, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'DT2I': [alerta_dt2i, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'RO': [alerta_ro, RO_TABLE_NAME, COLUMN_ORDER_RO],
+        'ABR1': [alerta_abr1, ABR1_TABLE_NAME, COLUMN_ORDER_ABR1],
+        'ISPS': [alerta_isps, ISPS_TABLE_NAME, COLUMN_ORDER_ISPS],
+        # 'COMP': [alerta_comp, COMP_TABLE_NAME, COLUMN_ORDER_COMP]
     }
 
     def __init__(self, options):
@@ -135,6 +137,45 @@ class AlertaSession:
     @staticmethod
     def now():
         return datetime.now()
+
+    def generateTypesTable(self):
+        alert_types = [
+            ('DCTJ', 'Documentos criminais sem retorno do TJ a mais de 60 dias'),
+            ('DNTJ', 'Documentos não criminais sem retorno do TJ a mais de 120 dias'),
+            ('DORD', 'Documentos com Órgão Responsável possivelmente desatualizado'),
+            ('GATE', 'Documentos com novas ITs do GATE'),
+            ('BDPA', 'Baixas a DP em atraso'),
+            ('IC1A', 'ICs sem prorrogação por mais de um ano'),
+            ('MVVD', 'Documentos com vitimas recorrentes recebidos nos ultimos 30 dias'),
+            ('OFFP', 'Ofício fora do prazo'),
+            ('OUVI', 'Expedientes de Ouvidoria (EO) pendentes de recebimento'),
+            ('PA1A', 'PAs sem prorrogação por mais de um ano'),
+            ('PPFP', 'Procedimento Preparatório fora do prazo'),
+            ('PPPV', 'Procedimento Preparatório próximo de vencer'),
+            ('PRCR', 'Processo possivelmente prescrito'),
+            ('PRCR1', 'Todos os crimes prescritos'),
+            ('PRCR2', 'Todos os crimes próximos de prescrever'),
+            ('PRCR3', 'Algum crime prescrito'),
+            ('PRCR4', 'Algum crime próximo de prescrever'),
+            ('VADF', 'Vistas abertas em documentos já fechados'),
+            ('NF30', 'Notícia de Fato a mais de 120 dias'),
+            ('DT2I', 'Movimento em processo de segunda instância'),
+            ('RO', 'ROs não entregues pelas delegacias'),
+            ('ABR1', 'Procedimentos que têm mais de 1 ano para comunicar ao CSMP'),
+            ('ISPS', 'Indicadores de Saneamento em Vermelho'),
+            ('COMP', 'Compras fora do padrão'),
+        ]
+
+        fields = [
+            StructField("alrt_sigla", StringType(), False),
+            StructField("alrt_descricao", StringType(), False),
+        ]
+        schema = StructType(fields)
+
+        df = spark.createDataFrame(alert_types, schema)
+        df.coalesce(1).write.format('parquet').saveAsTable(
+            '{0}.{1}'.format(self.options['schema_exadata_aux'], self.TYPES_TABLE_NAME),
+            mode='overwrite')
     
     def generateAlertas(self):
         print('Verificando alertas existentes em {0}'.format(datetime.today()))
@@ -149,25 +190,22 @@ class AlertaSession:
             spark.catalog.cacheTable("vista")
             spark.sql("from vista").count()
 
-            for alerta, (desc, func, table, columns) in self.alerta_list.items():
-                self.generateAlerta(alerta, desc, func, table, columns)
+            for alerta, (func, table, columns) in self.alerta_list.items():
+                self.generateAlerta(alerta, func, table, columns)
             self.write_dataframe()
 
-    def generateAlerta(self, alerta, desc, func, table, columns):
+    def generateAlerta(self, alerta, func, table, columns):
         print('Verificando alertas do tipo: {0}'.format(alerta))
         with Timer():
             dataframe = func(self.options)
-            # dataframe = dataframe.withColumn('alrt_sigla', lit(alerta).cast(StringType())) if 'alrt_sigla' not in dataframe.columns else dataframe
-            # dataframe = dataframe.withColumn('alrt_descricao', lit(desc).cast(StringType())) if 'alrt_descricao' not in dataframe.columns else dataframe
+            dataframe = dataframe.withColumn('alrt_sigla', lit(alerta).cast(StringType())) if 'alrt_sigla' not in dataframe.columns else dataframe
 
             # A chave DEVE ser definida dentro do alerta, senão a funcionalidade de dispensa pode não funcionar
             # formato sigla.chave.orgao
             dataframe = dataframe.withColumn('alrt_key', concat(
-                col('alrt_sigla'),
-                lit('.'),
+                col('alrt_sigla'), lit('.'),
                 col('alrt_key') if 'alrt_key' in dataframe.columns else lit('KEYUNDEFINED'),
-                lit('.'),
-                col('alrt_orgi_orga_dk')
+                lit('.'), col('alrt_orgi_orga_dk')
                 )
             )
 

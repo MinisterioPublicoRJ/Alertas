@@ -8,13 +8,9 @@ from utils import uuidsha
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
     col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('docu_nr_externo').alias('alrt_docu_nr_externo'), 
-    col('docu_tx_etiqueta').alias('alrt_docu_etiqueta'), 
-    col('cldc_ds_classe').alias('alrt_docu_classe'),
-    col('dt_fim_prazo').alias('alrt_docu_date'),  
+    col('dt_fim_prazo').alias('alrt_date_referencia'),  
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
-    col('elapsed').alias('alrt_dias_passados'),
+    col('elapsed').alias('alrt_dias_referencia'),
     col('alrt_key')
 ]
 

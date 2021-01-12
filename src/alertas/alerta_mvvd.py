@@ -1,5 +1,5 @@
 #-*-coding:utf-8-*-
-from pyspark.sql.types import IntegerType, StringType
+from pyspark.sql.types import IntegerType, StringType, DateType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -8,12 +8,9 @@ from utils import uuidsha
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
     col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('docu_nr_externo').alias('alrt_docu_nr_externo'), 
-    col('docu_tx_etiqueta').alias('alrt_docu_etiqueta'), 
-    col('cldc_ds_classe').alias('alrt_docu_classe'),
-    col('docu_dt_cadastro').alias('alrt_docu_date'),  
+    col('alrt_date_referencia'),
+    col('alrt_dias_referencia'),
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
     col('alrt_key')
 ]
 
@@ -70,5 +67,7 @@ def alerta_mvvd(options):
     """)
 
     resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
+    resultado = resultado.withColumn('alrt_date_referencia', lit(None).cast(DateType()))
+    resultado = resultado.withColumn('alrt_dias_referencia', lit(None).cast(IntegerType()))
 
     return resultado.select(columns).distinct()

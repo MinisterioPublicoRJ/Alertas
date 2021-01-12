@@ -1,5 +1,5 @@
 #-*-coding:utf-8-*-
-from pyspark.sql.types import IntegerType, StringType
+from pyspark.sql.types import IntegerType, StringType, DateType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -7,18 +7,15 @@ from utils import uuidsha
 
 
 columns = [
-    col('docu_dk').alias('alrt_docu_dk'), 
-    col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('docu_nr_externo').alias('alrt_docu_nr_externo'), 
-    col('docu_tx_etiqueta').alias('alrt_docu_etiqueta'), 
-    col('cldc_ds_classe').alias('alrt_docu_classe'),
-    col('docu_dt_cadastro').alias('alrt_docu_date'),  
+    col('docu_dk').alias('alrt_docu_dk'),
+    col('docu_nr_mp').alias('alrt_docu_nr_mp'),
+    col('alrt_date_referencia'),
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
-    col('elapsed').alias('alrt_dias_passados'),
+    col('elapsed').alias('alrt_dias_referencia'),
     col('alrt_sigla'),
-    col('alrt_descricao'),
-    col('alrt_key')
+    # col('alrt_descricao'),
+    col('alrt_key'),
+    col('alrt_stao_dk')
 ]
 
 key_columns = [
@@ -74,5 +71,6 @@ def alerta_ppfp(options):
     resultado = resultado_ppfp.union(resultado_pppv)
 
     resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
+    resultado = resultado.withColumn('alrt_date_referencia', lit(None).cast(DateType()))
     
     return resultado.select(columns).distinct()
