@@ -9,7 +9,7 @@ mov_columns = [
     col('docu_dk'),
     col('docu_nr_mp'),
     col('docu_nr_externo'),
-    col('docu_tx_etiqueta')
+    col('docu_tx_etiqueta'),
     col('cldc_ds_classe'),
     col('cldc_ds_hierarquia'),
     col('docu_orgi_orga_dk_responsavel'),
