@@ -21,9 +21,8 @@ columns = [
 ]
 
 def alerta_ic1a(options):
-    documento = spark.sql("from documento").\
-        filter('docu_tpst_dk != 11').\
-        filter('docu_fsdc_dk = 1').\
+    documento = spark.sql("from documentos_ativos").\
+        filter('docu_tpst_dk != 3').\
         filter("docu_cldc_dk = 392")
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
     apenso = spark.table('%s.mcpr_correlacionamento' % options['schema_exadata']).\
