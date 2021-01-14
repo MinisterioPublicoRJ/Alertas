@@ -13,7 +13,6 @@ columns = [
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('elapsed').alias('alrt_dias_referencia'),
     col('alrt_sigla'),
-    # col('alrt_descricao'),
     col('alrt_key'),
     col('stao_dk').alias('alrt_stao_dk'),
 ]

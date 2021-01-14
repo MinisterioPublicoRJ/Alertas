@@ -31,6 +31,7 @@ from alerta_ro import alerta_ro
 from alerta_vadf import alerta_vadf
 from alerta_abr1 import alerta_abr1
 from alerta_isps import alerta_isps
+from alerta_comp import alerta_comp
 
 
 class AlertaSession:
@@ -47,8 +48,8 @@ class AlertaSession:
     VADF_TABLE_NAME = 'mmps_alertas_vadf'
     OUVI_TABLE_NAME = 'mmps_alertas_ouvi'
 
-    PRCR_DETALHE_TABLE_NAME = "testkey_mmps_alerta_detalhe_prcr"
-    ISPS_AUX_TABLE_NAME = "testkey_mmps_alerta_isps_aux"
+    PRCR_DETALHE_TABLE_NAME = "mmps_alerta_detalhe_prcr"
+    ISPS_AUX_TABLE_NAME = "mmps_alerta_isps_aux"
 
     # Ordem em que as colunas estão salvas na tabela final
     # Esta ordem deve ser mantida por conta do insertInto que é realizado
@@ -63,7 +64,9 @@ class AlertaSession:
         'comp_contratacao',
         'comp_item',
         'comp_id_item',
-        'comp_contrato_iditem'
+        'comp_contrato_iditem',
+        'comp_dt_contratacao',
+        'comp_var_perc'
     ]
     COLUMN_ORDER_ISPS = COLUMN_ORDER_BASE + [
         'isps_municipio',
@@ -87,7 +90,7 @@ class AlertaSession:
         # 'DORD': [alerta_dord],
         'GATE': [alerta_gate, GATE_TABLE_NAME, COLUMN_ORDER_GATE],
         'BDPA': [alerta_bdpa, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'IC1A': [alerta_ic1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'IC1A': [alerta_ic1a, PPFP_TABLE_NAME, COLUMN_ORDER_PPFP],
         'MVVD': [alerta_mvvd, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         # 'OFFP': [alerta_offp],
         'OUVI': [alerta_ouvi, OUVI_TABLE_NAME, COLUMN_ORDER_OUVI],
@@ -100,7 +103,7 @@ class AlertaSession:
         'RO': [alerta_ro, RO_TABLE_NAME, COLUMN_ORDER_RO],
         'ABR1': [alerta_abr1, ABR1_TABLE_NAME, COLUMN_ORDER_ABR1],
         'ISPS': [alerta_isps, ISPS_TABLE_NAME, COLUMN_ORDER_ISPS],
-        # 'COMP': [alerta_comp, COMP_TABLE_NAME, COLUMN_ORDER_COMP]
+        'COMP': [alerta_comp, COMP_TABLE_NAME, COLUMN_ORDER_COMP],
     }
 
     TABLE_NAMES = set(x[1] for x in alerta_list.values())
@@ -113,7 +116,7 @@ class AlertaSession:
         self.options['prescricao_tabela_detalhe'] = self.PRCR_DETALHE_TABLE_NAME
         self.options['isps_tabela_aux'] = self.ISPS_AUX_TABLE_NAME
 
-        self.hist_name = lambda x: x + '_hist'
+        self.hist_name = lambda x: 'hist_' + x
 
         # Definir o schema no nome da tabela temp evita possíveis conflitos
         # entre processos em produção e desenvolvimento
@@ -188,7 +191,6 @@ class AlertaSession:
         print('Verificando alertas do tipo: {0}'.format(alerta))
         with Timer():
             dataframe = func(self.options)
-            print(dataframe)
             dataframe = dataframe.withColumn('alrt_sigla', lit(alerta).cast(StringType())) if 'alrt_sigla' not in dataframe.columns else dataframe
 
             # A chave DEVE ser definida dentro do alerta, senão a funcionalidade de dispensa pode não funcionar
@@ -216,8 +218,29 @@ class AlertaSession:
                 table_name = '{0}.{1}'.format(self.options['schema_alertas'], table)
                 temp_table_df.repartition(3).write.mode("overwrite").saveAsTable(table_name)
 
-                # hist_table_name = '{0}.{1}'.format(self.options['schema_alertas'], self.hist_name(table))
-                # Salvar historico fazendo as verificacoes necessarias de particionamento
-                # temp_table_df.withColumn("dt_partition", date_format(current_timestamp(), "yyyyMMdd"))
+                hist_table_df = temp_table_df.\
+                    withColumn("dt_calculo", date_format(current_timestamp(), "yyyyMMdd")).\
+                    withColumn("dt_partition", date_format(current_timestamp(), "yyyyMM"))
+                hist_table_name = '{0}.{1}'.format(self.options['schema_alertas'], self.hist_name(table))
+                try:
+                    current_hist = spark.sql("""
+                        SELECT * FROM {0} WHERE dt_partition = '{1}' AND dt_calculo <> '{2}'
+                    """.format(
+                            hist_table_name,
+                            datetime.now().strftime('%Y%m'),
+                            datetime.now().strftime('%Y%m%d')
+                        )
+                    )
+                except:
+                    current_hist = None
+
+                if current_hist:
+                    hist_table_df = current_hist.union(hist_table_df)
+                    hist_table_df.write.saveAsTable(hist_table_name + "_temp")
+                    hist_table_df = spark.table(hist_table_name + "_temp")
+                    hist_table_df.write.mode("overwrite").insertInto(hist_table_name, overwrite=True)
+                    spark.sql("drop table {0}".format(hist_table_name + "_temp"))
+                else:
+                    hist_table_df.write.partitionBy("dt_partition").saveAsTable(hist_table_name)
     
                 spark.sql("drop table {0}".format(self.temp_name(table)))
