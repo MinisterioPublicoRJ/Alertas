@@ -18,7 +18,7 @@ columns = [
 ]
 
 key_columns = [
-    col('alrt_docu_dk'),
+    col('docu_dk'),
     col('dt_fim_prazo')
 ]
 

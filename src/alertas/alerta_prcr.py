@@ -1,5 +1,5 @@
 #-*-coding:utf-8-*-
-from pyspark.sql.types import IntegerType, DateType
+from pyspark.sql.types import IntegerType, TimestampType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -7,20 +7,17 @@ from utils import uuidsha
 
 
 columns = [
-    col('docu_dk').alias('alrt_docu_dk'), 
-    col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('alrt_date_referencia'),  
+    col('docu_dk').alias('alrt_docu_dk'),
+    col('docu_nr_mp').alias('alrt_docu_nr_mp'),
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('elapsed').alias('alrt_dias_referencia'),
-    col('alrt_sigla'),
-    # col('alrt_descricao'),
-    col('alrt_key'),
+    col('elapsed').alias('alrt_dias_referencia')
 ]
 
 columns_alias = [
     col('alrt_docu_dk'),
     col('alrt_docu_nr_mp'),
     col('alrt_orgi_orga_dk'),
+    col('alrt_dias_referencia')
 ]
 
 key_columns = [
@@ -197,7 +194,7 @@ def alerta_prcr(options):
             elapsed as adpr_dias_prescrito
         FROM TEMPO_PARA_PRESCRICAO
     """).write.mode('overwrite').saveAsTable('{}.{}'.format(
-            options['schema_exadata_aux'],
+            options['schema_alertas'],
             options['prescricao_tabela_detalhe']
         )
     )
@@ -214,7 +211,7 @@ def alerta_prcr(options):
     """.format(
             LIMIAR_PRESCRICAO_PROXIMA=LIMIAR_PRESCRICAO_PROXIMA)
     )
-    max_min_status = subtipos.groupBy(columns[:-1]).agg(min('status_prescricao'), max('status_prescricao')).\
+    max_min_status = subtipos.groupBy(columns).agg(min('status_prescricao'), max('status_prescricao')).\
         withColumnRenamed('max(status_prescricao)', 'max_status').\
         withColumnRenamed('min(status_prescricao)', 'min_status')
     max_min_status.createOrReplaceTempView('MAX_MIN_STATUS')
@@ -241,6 +238,6 @@ def alerta_prcr(options):
     resultado = resultado.filter('alrt_sigla IS NOT NULL').select(columns_alias + ['alrt_sigla', 'alrt_descricao'])
 
     resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
-    resultado = resultado.withColumn('alrt_date_referencia', lit(None).cast(DateType()))
+    resultado = resultado.withColumn('alrt_date_referencia', lit(None).cast(TimestampType()))
 
     return resultado

@@ -1,5 +1,5 @@
 #-*-coding:utf-8-*-
-from pyspark.sql.types import IntegerType, StringType, DateType
+from pyspark.sql.types import IntegerType, StringType, TimestampType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -67,7 +67,7 @@ def alerta_mvvd(options):
     """)
 
     resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
-    resultado = resultado.withColumn('alrt_date_referencia', lit(None).cast(DateType()))
+    resultado = resultado.withColumn('alrt_date_referencia', lit(None).cast(TimestampType()))
     resultado = resultado.withColumn('alrt_dias_referencia', lit(None).cast(IntegerType()))
 
     return resultado.select(columns).distinct()

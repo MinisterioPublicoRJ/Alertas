@@ -14,6 +14,7 @@ if __name__ == "__main__":
     parser.add_argument('-i','--impalaHost', metavar='impalaHost', type=str, help='')
     parser.add_argument('-o','--impalaPort', metavar='impalaPort', type=str, help='')
     parser.add_argument('-pl', '--prescricaoLimiar', metavar='prescricaoLimiar', type=int, default=90, help='')
+    parser.add_argument('-al', '--schemaAlertas', metavar='schemaAlertas', type=str, help='')
     args = parser.parse_args()
 
     options = {
@@ -22,7 +23,8 @@ if __name__ == "__main__":
                     'schema_opengeo': args.schemaOpenGeo,
                     'impala_host' : args.impalaHost,
                     'impala_port' : args.impalaPort,
-                    'prescricao_limiar': args.prescricaoLimiar
+                    'prescricao_limiar': args.prescricaoLimiar,
+                    'schema_alertas': args.schemaAlertas
                 }
     session = AlertaSession(options)
     session.generateAlertas()

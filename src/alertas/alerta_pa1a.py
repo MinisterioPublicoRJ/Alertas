@@ -16,7 +16,7 @@ columns = [
 ]
 
 proto_columns = [
-    'docu_dk', 'docu_nr_mp', 'docu_orgi_orga_dk_responsavel',
+    'docu_dk', 'docu_nr_mp', 'docu_orgi_orga_dk_responsavel', 'docu_dt_cadastro'
 ]
 
 key_columns = [

@@ -15,9 +15,9 @@ columns = [
 ]
 
 key_columns = [
-    col('indicador'),
-    col('municipio'),
-    col('ano_referencia')
+    col('isps_indicador'),
+    col('isps_municipio'),
+    col('isps_ano_referencia')
 ]
 
 
@@ -36,7 +36,7 @@ def alerta_isps(options):
             FROM {0}.{1}
             WHERE isps_ano_referencia = {2}
         """.format(
-                options['schema_exadata_aux'],
+                options['schema_alertas'],
                 options['isps_tabela_aux'],
                 ano_referencia
             )
@@ -164,7 +164,7 @@ def alerta_isps(options):
     INDICADORES.createOrReplaceTempView('INDICADORES')
 
     resultados = spark.sql("""
-        SELECT P.id_orgao as alrt_orgi_orga_dk, I.indicador, I.municipio
+        SELECT P.id_orgao as alrt_orgi_orga_dk, I.indicador as isps_indicador, I.municipio as isps_municipio
         FROM {0}.atualizacao_pj_pacote P
         JOIN {1}.institucional_orgaos_meio_ambiente M ON M.cod_orgao = P.id_orgao
         JOIN INDICADORES I ON I.municipio = M.comarca
@@ -173,12 +173,12 @@ def alerta_isps(options):
     resultados.createOrReplaceTempView('RESULTADOS_ISPS')
     spark.catalog.cacheTable("RESULTADOS_ISPS")
 
-    resultados = resultados.withColumn('ano_referencia', lit(ano_referencia).cast(IntegerType()))\
+    resultados = resultados.withColumn('isps_ano_referencia', lit(ano_referencia).cast(IntegerType()))\
         .withColumn('alrt_key', uuidsha(*key_columns))
 
     resultados = resultados.select(columns)
     resultados.write.mode('append').saveAsTable('{}.{}'.format(
-        options['schema_exadata_aux'], options['isps_tabela_aux']
+        options['schema_alertas'], options['isps_tabela_aux']
     ))
 
     return resultados

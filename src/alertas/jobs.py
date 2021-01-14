@@ -47,18 +47,6 @@ class AlertaSession:
     VADF_TABLE_NAME = 'mmps_alertas_vadf'
     OUVI_TABLE_NAME = 'mmps_alertas_ouvi'
 
-    TABLE_NAMES = [
-        ABR1_TABLE_NAME,
-        RO_TABLE_NAME,
-        COMP_TABLE_NAME,
-        ISPS_TABLE_NAME,
-        MGP_TABLE_NAME,
-        PPFP_TABLE_NAME,
-        GATE_TABLE_NAME,
-        VADF_TABLE_NAME,
-        OUVI_TABLE_NAME,
-    ]
-
     PRCR_DETALHE_TABLE_NAME = "testkey_mmps_alerta_detalhe_prcr"
     ISPS_AUX_TABLE_NAME = "testkey_mmps_alerta_isps_aux"
 
@@ -91,7 +79,7 @@ class AlertaSession:
     COLUMN_ORDER_PPFP = COLUMN_ORDER_MGP + ['alrt_stao_dk']
     COLUMN_ORDER_GATE = COLUMN_ORDER_MGP + ['alrt_itcn_dk']
     COLUMN_ORDER_VADF = COLUMN_ORDER_MGP + ['alrt_vist_dk']
-    COLUMN_ORDER_OUVI = COLUMN_ORDER_MGP + ['alrt_movi_dk']
+    COLUMN_ORDER_OUVI = COLUMN_ORDER_MGP + ['alrt_item_dk']
 
     alerta_list = {
         # 'DCTJ': [alerta_dctj],
@@ -115,6 +103,8 @@ class AlertaSession:
         # 'COMP': [alerta_comp, COMP_TABLE_NAME, COLUMN_ORDER_COMP]
     }
 
+    TABLE_NAMES = set(x[1] for x in alerta_list.values())
+
     def __init__(self, options):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
         spark.conf.set("spark.sql.autoBroadcastJoinThreshold", -1)
@@ -127,7 +117,7 @@ class AlertaSession:
 
         # Definir o schema no nome da tabela temp evita possíveis conflitos
         # entre processos em produção e desenvolvimento
-        self.temp_name = lambda x: '{0}.temp_{1}'.format(options['schema_exadata_aux'], x)
+        self.temp_name = lambda x: '{0}.temp_{1}'.format(options['schema_alertas'], x)
 
         # Evita que tabela temporária de processos anteriores com erro
         # influencie no resultado do processo atual.
@@ -174,7 +164,7 @@ class AlertaSession:
 
         df = spark.createDataFrame(alert_types, schema)
         df.coalesce(1).write.format('parquet').saveAsTable(
-            '{0}.{1}'.format(self.options['schema_exadata_aux'], self.TYPES_TABLE_NAME),
+            '{0}.{1}'.format(self.options['schema_alertas'], self.TYPES_TABLE_NAME),
             mode='overwrite')
     
     def generateAlertas(self):
@@ -198,6 +188,7 @@ class AlertaSession:
         print('Verificando alertas do tipo: {0}'.format(alerta))
         with Timer():
             dataframe = func(self.options)
+            print(dataframe)
             dataframe = dataframe.withColumn('alrt_sigla', lit(alerta).cast(StringType())) if 'alrt_sigla' not in dataframe.columns else dataframe
 
             # A chave DEVE ser definida dentro do alerta, senão a funcionalidade de dispensa pode não funcionar
@@ -219,12 +210,13 @@ class AlertaSession:
     def write_dataframe(self):
         with Timer():
             for table in self.TABLE_NAMES:
+                print("Escrevendo a tabela {}".format(table))
                 temp_table_df = spark.table(self.temp_name(table))
 
-                table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], table)
+                table_name = '{0}.{1}'.format(self.options['schema_alertas'], table)
                 temp_table_df.repartition(3).write.mode("overwrite").saveAsTable(table_name)
 
-                # hist_table_name = '{0}.{1}'.format(self.options['schema_exadata_aux'], self.hist_name(table))
+                # hist_table_name = '{0}.{1}'.format(self.options['schema_alertas'], self.hist_name(table))
                 # Salvar historico fazendo as verificacoes necessarias de particionamento
                 # temp_table_df.withColumn("dt_partition", date_format(current_timestamp(), "yyyyMMdd"))
     

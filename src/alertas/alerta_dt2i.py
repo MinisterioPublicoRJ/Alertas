@@ -73,21 +73,13 @@ def alerta_dt2i(options):
     resultado = doc_rec_week.select(
         "alrt_docu_dk",
         "alrt_docu_nr_mp",
-        "alrt_docu_nr_externo",
-        "alrt_docu_etiqueta",
-        "alrt_docu_classe",
         "alrt_orgi_orga_dk",
-        "alrt_classe_hierarquia",
         "pcao_dt_andamento",
         "elapsed"
     ).groupby([
         "alrt_docu_dk",
         "alrt_docu_nr_mp",
-        "alrt_docu_nr_externo",
-        "alrt_docu_etiqueta",
-        "alrt_docu_classe",
         "alrt_orgi_orga_dk",
-        "alrt_classe_hierarquia"
     ]).agg(
         max("pcao_dt_andamento").alias("alrt_date_referencia"),
         min("elapsed").alias("alrt_dias_referencia") 
@@ -101,5 +93,5 @@ def alerta_dt2i(options):
         'alrt_date_referencia',  
         'alrt_orgi_orga_dk',
         'alrt_dias_referencia',
-        'alrt_key,'
+        'alrt_key',
     ])
