@@ -7,7 +7,13 @@ import uuid
 from datetime import datetime
 
 from pyspark.sql.functions import *
-from pyspark.sql.types import StringType, IntegerType, TimestampType, StructField, StructType
+from pyspark.sql.types import (
+    StringType,
+    IntegerType,
+    TimestampType,
+    StructField,
+    StructType
+)
 from pyspark.sql.utils import AnalysisException
 
 from base import spark
@@ -43,10 +49,10 @@ class AlertaSession:
     COMP_TABLE_NAME = 'mmps_alertas_comp'
     ISPS_TABLE_NAME = 'mmps_alertas_isps'
     MGP_TABLE_NAME = 'mmps_alertas_mgp'
-    PPFP_TABLE_NAME = 'mmps_alertas_ppfp'
+    STAO_TABLE_NAME = 'mmps_alertas_stao'
     GATE_TABLE_NAME = 'mmps_alertas_gate'
-    VADF_TABLE_NAME = 'mmps_alertas_vadf'
-    OUVI_TABLE_NAME = 'mmps_alertas_ouvi'
+    VIST_TABLE_NAME = 'mmps_alertas_vist'
+    MOVI_TABLE_NAME = 'mmps_alertas_movi'
 
     PRCR_DETALHE_TABLE_NAME = "mmps_alerta_detalhe_prcr"
     ISPS_AUX_TABLE_NAME = "mmps_alerta_isps_aux"
@@ -79,10 +85,10 @@ class AlertaSession:
         'alrt_date_referencia',
         'alrt_dias_referencia'
     ]
-    COLUMN_ORDER_PPFP = COLUMN_ORDER_MGP + ['alrt_stao_dk']
+    COLUMN_ORDER_STAO = COLUMN_ORDER_MGP + ['alrt_stao_dk']
     COLUMN_ORDER_GATE = COLUMN_ORDER_MGP + ['alrt_itcn_dk']
-    COLUMN_ORDER_VADF = COLUMN_ORDER_MGP + ['alrt_vist_dk']
-    COLUMN_ORDER_OUVI = COLUMN_ORDER_MGP + ['alrt_item_dk']
+    COLUMN_ORDER_VIST = COLUMN_ORDER_MGP + ['alrt_vist_dk']
+    COLUMN_ORDER_MOVI = COLUMN_ORDER_MGP + ['alrt_item_dk']
 
     alerta_list = {
         # 'DCTJ': [alerta_dctj],
@@ -90,14 +96,14 @@ class AlertaSession:
         # 'DORD': [alerta_dord],
         'GATE': [alerta_gate, GATE_TABLE_NAME, COLUMN_ORDER_GATE],
         'BDPA': [alerta_bdpa, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'IC1A': [alerta_ic1a, PPFP_TABLE_NAME, COLUMN_ORDER_PPFP],
+        'IC1A': [alerta_ic1a, STAO_TABLE_NAME, COLUMN_ORDER_STAO],
         'MVVD': [alerta_mvvd, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         # 'OFFP': [alerta_offp],
-        'OUVI': [alerta_ouvi, OUVI_TABLE_NAME, COLUMN_ORDER_OUVI],
+        'OUVI': [alerta_ouvi, MOVI_TABLE_NAME, COLUMN_ORDER_MOVI],
         'PA1A': [alerta_pa1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'PPFP': [alerta_ppfp, PPFP_TABLE_NAME, COLUMN_ORDER_PPFP],
+        'PPFP': [alerta_ppfp, STAO_TABLE_NAME, COLUMN_ORDER_STAO],
         'PRCR': [alerta_prcr, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'VADF': [alerta_vadf, VADF_TABLE_NAME, COLUMN_ORDER_VADF],
+        'VADF': [alerta_vadf, VIST_TABLE_NAME, COLUMN_ORDER_VIST],
         'NF30': [alerta_nf30, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         'DT2I': [alerta_dt2i, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         'RO': [alerta_ro, RO_TABLE_NAME, COLUMN_ORDER_RO],
@@ -186,6 +192,7 @@ class AlertaSession:
             for alerta, (func, table, columns) in self.alerta_list.items():
                 self.generateAlerta(alerta, func, table, columns)
             self.write_dataframe()
+            # self.generateTypesTable()
 
     def generateAlerta(self, alerta, func, table, columns):
         print('Verificando alertas do tipo: {0}'.format(alerta))
@@ -238,9 +245,9 @@ class AlertaSession:
                     hist_table_df = current_hist.union(hist_table_df)
                     hist_table_df.write.saveAsTable(hist_table_name + "_temp")
                     hist_table_df = spark.table(hist_table_name + "_temp")
-                    hist_table_df.write.mode("overwrite").insertInto(hist_table_name, overwrite=True)
+                    hist_table_df.coalesce(3).write.mode("overwrite").insertInto(hist_table_name, overwrite=True)
                     spark.sql("drop table {0}".format(hist_table_name + "_temp"))
                 else:
-                    hist_table_df.write.partitionBy("dt_partition").saveAsTable(hist_table_name)
+                    hist_table_df.coalesce(3).write.partitionBy("dt_partition").saveAsTable(hist_table_name)
     
                 spark.sql("drop table {0}".format(self.temp_name(table)))
