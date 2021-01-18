@@ -211,9 +211,10 @@ def alerta_prcr(options):
     """.format(
             LIMIAR_PRESCRICAO_PROXIMA=LIMIAR_PRESCRICAO_PROXIMA)
     )
-    max_min_status = subtipos.groupBy(columns).agg(min('status_prescricao'), max('status_prescricao')).\
+    max_min_status = subtipos.groupBy(columns[:-1]).agg(min('status_prescricao'), max('status_prescricao'), min('elapsed')).\
         withColumnRenamed('max(status_prescricao)', 'max_status').\
-        withColumnRenamed('min(status_prescricao)', 'min_status')
+        withColumnRenamed('min(status_prescricao)', 'min_status').\
+        withColumnRenamed('min(elapsed)', 'alrt_dias_referencia')
     max_min_status.createOrReplaceTempView('MAX_MIN_STATUS')
 
     # Os WHEN precisam ser feitos na ordem PRCR1, 2, 3 e depois 4!
