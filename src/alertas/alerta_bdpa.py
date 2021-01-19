@@ -13,14 +13,21 @@ columns = [
     col('cldc_ds_classe').alias('alrt_docu_classe'),
     col('dt_fim_prazo').alias('alrt_docu_date'),  
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
+    col('nm_delegacia').alias('alrt_classe_hierarquia'),
     col('elapsed').alias('alrt_dias_passados'),
 ]
 
 def alerta_bdpa(options):
     documento = spark.sql("from documento").filter('DOCU_TPST_DK = 3').filter('DOCU_FSDC_DK = 1')
+    orga_externo = spark.table('%s.mprj_orgao_ext' % options['schema_exadata']).\
+        withColumnRenamed('ORGE_NM_ORGAO', 'nm_delegacia')
+    doc_origem = documento.join(
+        orga_externo,
+        documento.DOCU_ORGE_ORGA_DK_DELEG_ORIGEM == orga_externo.ORGE_ORGA_DK,
+        'left'
+    )
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
-    doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_classe = doc_origem.join(broadcast(classe), doc_origem.DOCU_CLDC_DK == classe.cldc_dk, 'left')
     vista = spark.sql("from vista")
     doc_vista = doc_classe.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'inner')
     andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata']).\
@@ -70,9 +77,9 @@ def alerta_bdpa(options):
             'inner')
     
     # ORGAOS DA POLICIA
-    orga_policia = spark.table('%s.mprj_orgao_ext' % options['schema_exadata']).filter('ORGE_TPOE_DK IN (60, 61, 68)') 
+    orga_policia = orga_externo.filter('ORGE_TPOE_DK IN (60, 61, 68)') 
     # APENAS DELEGACIAS
-    # orga_delegacia = spark.table('%s.mprj_orgao_ext' % options['schema_exadata']).filter('ORGE_TPOE_DK IN (60, 61)')
+    # orga_delegacia = orga_externo.filter('ORGE_TPOE_DK IN (60, 61)')
     doc_mov_cop = doc_mov_dest.join(orga_policia, doc_mov_dest.MOVI_ORGA_DK_DESTINO == orga_policia.ORGE_ORGA_DK)
     doc_lost = doc_mov_cop.withColumn("dt_fim_prazo", expr("date_add(dt_guia, stao_nr_dias_prazo)")).\
         withColumn('elapsed', lit(datediff(current_date(), 'dt_fim_prazo')).cast(IntegerType())).\
