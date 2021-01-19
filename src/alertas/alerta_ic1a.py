@@ -1,5 +1,5 @@
 #-*-coding:utf-8-*-
-from pyspark.sql.types import IntegerType
+from pyspark.sql.types import IntegerType, StringType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -15,7 +15,7 @@ columns = [
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('elapsed').alias('alrt_dias_referencia'),
     col('alrt_key'),
-    col('stao_dk').alias('alrt_stao_dk')
+    col('stao_dk').alias('alrt_dk_referencia')
 ]
 
 key_columns = [

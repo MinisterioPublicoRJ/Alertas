@@ -239,6 +239,5 @@ def alerta_prcr(options):
     resultado = resultado.filter('alrt_sigla IS NOT NULL').select(columns_alias + ['alrt_sigla', 'alrt_descricao'])
 
     resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
-    resultado = resultado.withColumn('alrt_date_referencia', lit(None).cast(TimestampType()))
 
     return resultado

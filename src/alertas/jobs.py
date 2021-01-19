@@ -11,6 +11,7 @@ from pyspark.sql.types import (
     StringType,
     IntegerType,
     TimestampType,
+    DoubleType,
     StructField,
     StructType
 )
@@ -49,61 +50,62 @@ class AlertaSession:
     COMP_TABLE_NAME = 'mmps_alertas_comp'
     ISPS_TABLE_NAME = 'mmps_alertas_isps'
     MGP_TABLE_NAME = 'mmps_alertas_mgp'
-    STAO_TABLE_NAME = 'mmps_alertas_stao'
-    GATE_TABLE_NAME = 'mmps_alertas_gate'
-    VIST_TABLE_NAME = 'mmps_alertas_vist'
-    MOVI_TABLE_NAME = 'mmps_alertas_movi'
 
     PRCR_DETALHE_TABLE_NAME = "mmps_alerta_detalhe_prcr"
     ISPS_AUX_TABLE_NAME = "mmps_alerta_isps_aux"
 
     # Ordem em que as colunas estão salvas na tabela final
     # Esta ordem deve ser mantida por conta do insertInto que é realizado
-    COLUMN_ORDER_BASE = ['alrt_key', 'alrt_sigla', 'alrt_orgi_orga_dk']
-    COLUMN_ORDER_ABR1 = COLUMN_ORDER_BASE + ['abr1_nr_procedimentos', 'abr1_ano_mes']
+    COLUMN_ORDER_BASE = [
+        ('alrt_key', StringType),
+        ('alrt_sigla', StringType),
+        ('alrt_orgi_orga_dk', IntegerType)
+    ]
+    COLUMN_ORDER_ABR1 = COLUMN_ORDER_BASE + [
+        ('abr1_nr_procedimentos', IntegerType),
+        ('abr1_ano_mes', StringType)
+    ]
     COLUMN_ORDER_RO = COLUMN_ORDER_BASE + [
-        'ro_nr_delegacia',
-        'ro_qt_ros_faltantes',
-        'ro_max_proc'
+        ('ro_nr_delegacia', StringType),
+        ('ro_qt_ros_faltantes', IntegerType),
+        ('ro_max_proc', StringType)
     ]
     COLUMN_ORDER_COMP = COLUMN_ORDER_BASE + [
-        'comp_contratacao',
-        'comp_item',
-        'comp_id_item',
-        'comp_contrato_iditem',
-        'comp_dt_contratacao',
-        'comp_var_perc'
+        ('comp_contratacao', IntegerType),
+        ('comp_item', StringType),
+        ('comp_id_item', IntegerType),
+        ('comp_contrato_iditem', StringType),
+        ('comp_dt_contratacao', StringType),
+        ('comp_var_perc', DoubleType)
     ]
     COLUMN_ORDER_ISPS = COLUMN_ORDER_BASE + [
-        'isps_municipio',
-        'isps_indicador',
-        'isps_ano_referencia'
+        ('isps_municipio', StringType),
+        ('isps_indicador', StringType),
+        ('isps_ano_referencia', IntegerType)
     ]
     COLUMN_ORDER_MGP = COLUMN_ORDER_BASE + [
-        'alrt_docu_dk',
-        'alrt_docu_nr_mp',
-        'alrt_date_referencia',
-        'alrt_dias_referencia'
+        ('alrt_docu_dk', IntegerType),
+        ('alrt_docu_nr_mp', StringType),
+        ('alrt_date_referencia', TimestampType),
+        ('alrt_dias_referencia', IntegerType),
+        ('alrt_dk_referencia', IntegerType),
+        ('alrt_info_adicional', StringType)
     ]
-    COLUMN_ORDER_STAO = COLUMN_ORDER_MGP + ['alrt_stao_dk']
-    COLUMN_ORDER_GATE = COLUMN_ORDER_MGP + ['alrt_itcn_dk']
-    COLUMN_ORDER_VIST = COLUMN_ORDER_MGP + ['alrt_vist_dk']
-    COLUMN_ORDER_MOVI = COLUMN_ORDER_MGP + ['alrt_item_dk']
 
     alerta_list = {
         # 'DCTJ': [alerta_dctj],
         # 'DNTJ': [alerta_dntj],
         # 'DORD': [alerta_dord],
-        'GATE': [alerta_gate, GATE_TABLE_NAME, COLUMN_ORDER_GATE],
+        'GATE': [alerta_gate, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         'BDPA': [alerta_bdpa, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'IC1A': [alerta_ic1a, STAO_TABLE_NAME, COLUMN_ORDER_STAO],
+        'IC1A': [alerta_ic1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         'MVVD': [alerta_mvvd, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         # 'OFFP': [alerta_offp],
-        'OUVI': [alerta_ouvi, MOVI_TABLE_NAME, COLUMN_ORDER_MOVI],
+        'OUVI': [alerta_ouvi, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         'PA1A': [alerta_pa1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'PPFP': [alerta_ppfp, STAO_TABLE_NAME, COLUMN_ORDER_STAO],
+        'PPFP': [alerta_ppfp, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         'PRCR': [alerta_prcr, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        'VADF': [alerta_vadf, VIST_TABLE_NAME, COLUMN_ORDER_VIST],
+        'VADF': [alerta_vadf, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         'NF30': [alerta_nf30, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         'DT2I': [alerta_dt2i, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         'RO': [alerta_ro, RO_TABLE_NAME, COLUMN_ORDER_RO],
@@ -209,7 +211,11 @@ class AlertaSession:
                 )
             )
 
-            dataframe.select(columns).write.mode("append").saveAsTable(self.temp_name(table))
+            for colname, coltype in columns:
+                dataframe = dataframe.withColumn(colname, lit(None).cast(coltype())) if colname not in dataframe.columns else dataframe
+
+            colnames = [c[0] for c in columns]
+            dataframe.select(colnames).write.mode("append").saveAsTable(self.temp_name(table))
 
     def check_table_exists(self, schema, table_name):
         spark.sql("use %s" % schema)

@@ -8,8 +8,6 @@ from utils import uuidsha
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
     col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('alrt_date_referencia'),
-    col('alrt_dias_referencia'),
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('alrt_key')
 ]
@@ -67,7 +65,5 @@ def alerta_mvvd(options):
     """)
 
     resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
-    resultado = resultado.withColumn('alrt_date_referencia', lit(None).cast(TimestampType()))
-    resultado = resultado.withColumn('alrt_dias_referencia', lit(None).cast(IntegerType()))
 
     return resultado.select(columns).distinct()

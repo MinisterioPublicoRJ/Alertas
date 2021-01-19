@@ -1,6 +1,6 @@
 #-*-coding:utf-8-*-
 from pyspark.sql.functions import *
-from pyspark.sql.types import TimestampType, IntegerType
+from pyspark.sql.types import TimestampType, IntegerType, StringType
 
 from base import spark
 from utils import uuidsha
@@ -9,11 +9,9 @@ from utils import uuidsha
 columns = [
     col('docu_dk').alias('alrt_docu_dk'),
     col('docu_nr_mp').alias('alrt_docu_nr_mp'),
-    col('alrt_date_referencia'),
-    col('alrt_dias_referencia'),
     col('movi_orga_dk_destino').alias('alrt_orgi_orga_dk'),
     col('alrt_key'),
-    col('item_dk').alias('alrt_item_dk'),
+    col('item_dk').alias('alrt_dk_referencia'),
 ]
 
 key_columns = [
@@ -38,7 +36,5 @@ def alerta_ouvi(options):
         filter('movi_dt_recebimento_guia IS NULL')
 
     resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
-    resultado = resultado.withColumn('alrt_date_referencia', lit(None).cast(TimestampType()))
-    resultado = resultado.withColumn('alrt_dias_referencia', lit(None).cast(IntegerType()))
 
     return resultado.select(columns)

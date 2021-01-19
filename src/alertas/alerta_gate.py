@@ -1,5 +1,5 @@
 #-*-coding:utf-8-*-
-from pyspark.sql.types import IntegerType
+from pyspark.sql.types import IntegerType, StringType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -7,7 +7,7 @@ from utils import uuidsha
 
 
 columns = [
-    col('itcn_dk').alias('alrt_itcn_dk'),
+    col('itcn_dk').alias('alrt_dk_referencia'),
     col('docu_dk').alias('alrt_docu_dk'),
     col('docu_nr_mp').alias('alrt_docu_nr_mp'),
     col('itcn_dt_cadastro').alias('alrt_date_referencia'),

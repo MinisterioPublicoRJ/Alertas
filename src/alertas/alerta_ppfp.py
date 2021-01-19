@@ -9,12 +9,11 @@ from utils import uuidsha
 columns = [
     col('docu_dk').alias('alrt_docu_dk'),
     col('docu_nr_mp').alias('alrt_docu_nr_mp'),
-    col('alrt_date_referencia'),
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('elapsed').alias('alrt_dias_referencia'),
     col('alrt_sigla'),
     col('alrt_key'),
-    col('stao_dk').alias('alrt_stao_dk'),
+    col('stao_dk').alias('alrt_dk_referencia'),
 ]
 
 key_columns = [
@@ -70,6 +69,5 @@ def alerta_ppfp(options):
     resultado = resultado_ppfp.union(resultado_pppv)
 
     resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
-    resultado = resultado.withColumn('alrt_date_referencia', lit(None).cast(TimestampType()))
     
     return resultado.select(columns).distinct()
