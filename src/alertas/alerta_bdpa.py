@@ -47,7 +47,8 @@ def alerta_bdpa(options):
     )
     sub_andamento = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata'])
     doc_sub_andamento = doc_last_andamento.join(sub_andamento, doc_last_andamento.PCAO_DK == sub_andamento.STAO_PCAO_DK, 'inner')
-    tp_baixa = spark.table('%s.mmps_tp_andamento' % options['schema_exadata_aux']).filter('id_pai in (6363, 6519)')
+    tp_baixa = spark.table('%s.mmps_tp_andamento' % options['schema_exadata_aux']).\
+        filter('id in (6006, 6010, 6363, 6494, 6495, 6519, 6520, 6521, 6522, 6523)')
     doc_baixa = doc_sub_andamento.join(tp_baixa, doc_sub_andamento.STAO_TPPR_DK == tp_baixa.ID, 'inner').\
         filter('STAO_NR_DIAS_PRAZO IS NOT NULL')
     
