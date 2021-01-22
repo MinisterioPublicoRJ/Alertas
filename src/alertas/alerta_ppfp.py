@@ -22,9 +22,8 @@ key_columns = [
 ]
 
 def alerta_ppfp(options):
-    documento = spark.sql("from documento").\
-        filter('docu_tpst_dk != 11').\
-        filter('docu_fsdc_dk = 1').\
+    documento = spark.sql("from documentos_ativos").\
+        filter('docu_tpst_dk != 3').\
         filter('docu_cldc_dk = 395').\
         withColumn('elapsed', lit(datediff(current_date(), 'docu_dt_cadastro')).cast(IntegerType()))
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])

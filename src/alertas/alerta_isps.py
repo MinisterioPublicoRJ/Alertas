@@ -1,4 +1,7 @@
 #-*-coding:utf-8-*-
+import re
+import unicodedata
+
 from pyspark.sql.functions import *
 from pyspark.sql.types import IntegerType
 
@@ -19,6 +22,16 @@ key_columns = [
     col('isps_municipio'),
     col('isps_ano_referencia')
 ]
+
+
+def custom_slugify(value):
+    text = unicodedata.normalize('NFD', value)
+    text = text.encode('ascii', 'ignore')
+    text = text.decode("utf-8")
+    text = re.sub(r"\s+", "-", text)
+    return text.lower()
+
+spark.udf.register("custom_slugify", custom_slugify)
 
 
 def alerta_isps(options):

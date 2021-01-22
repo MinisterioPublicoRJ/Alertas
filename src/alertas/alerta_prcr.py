@@ -34,14 +34,12 @@ def alerta_prcr(options):
             CASE WHEN docu_dt_fato < docu_dt_cadastro THEN docu_dt_fato ELSE docu_dt_cadastro END as docu_dt_fato,
             docu_dt_cadastro, docu_orgi_orga_dk_responsavel, cldc_dk, cldc_ds_classe,
             cldc_ds_hierarquia, id, artigo_lei, max_pena, nome_delito, multiplicador, abuso_menor
-        FROM documento
+        FROM documentos_ativos
         LEFT JOIN {0}.mmps_classe_hierarquia ON cldc_dk = docu_cldc_dk
         JOIN {1}.mcpr_assunto_documento ON docu_dk = asdo_docu_dk
         JOIN {0}.tb_penas_assuntos ON id = asdo_assu_dk
         JOIN {0}.atualizacao_pj_pacote ON docu_orgi_orga_dk_responsavel = id_orgao
-        WHERE docu_tpst_dk != 11
-        AND docu_fsdc_dk = 1
-        AND docu_dt_cadastro >= '2010-01-01'
+        WHERE docu_dt_cadastro >= '2010-01-01'
         AND max_pena IS NOT NULL
         AND cod_pct IN (200, 201, 202, 203, 204, 205, 206, 207, 208, 209)
         AND asdo_dt_fim IS NULL           -- tira assuntos que acabaram

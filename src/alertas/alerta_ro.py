@@ -1,4 +1,5 @@
 #-*-coding:utf-8-*-
+from pyspark.sql.types import IntegerType, StringType
 from pyspark.sql.functions import *
 
 from base import spark
@@ -10,7 +11,8 @@ columns = [
     col('pip_codigo').alias('alrt_orgi_orga_dk'),
     col('qt_ros_faltantes').alias('ro_qt_ros_faltantes'),
     col('alrt_key'),
-    col('max_proc').alias('ro_max_proc')
+    col('max_proc').alias('ro_max_proc'),
+    col('cisp_nome_apresentacao').alias('ro_cisp_nome_apresentacao'),
 ]
 
 key_columns = [
@@ -40,6 +42,7 @@ def alerta_ro(options):
     JOIN {1}.tb_pip_cisp tpc ON rqf.nr_delegacia = tpc.cisp_codigo
     WHERE rqf.qt_ros_faltantes >= 1
     """.format(options["schema_opengeo"], options["schema_exadata_aux"]))
+    df = df.withColumn("numero_delegacia", col("numero_delegacia").cast(StringType()))
 
     df = df.withColumn('alrt_key', uuidsha(*key_columns))
 
