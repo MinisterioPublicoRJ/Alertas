@@ -42,7 +42,6 @@ def alerta_ro(options):
     JOIN {1}.tb_pip_cisp tpc ON rqf.nr_delegacia = tpc.cisp_codigo
     WHERE rqf.qt_ros_faltantes >= 1
     """.format(options["schema_opengeo"], options["schema_exadata_aux"]))
-    df = df.withColumn("numero_delegacia", col("numero_delegacia").cast(StringType()))
 
     df = df.withColumn('alrt_key', uuidsha(*key_columns))
 

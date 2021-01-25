@@ -82,14 +82,16 @@ def alerta_bdpa(options):
             'inner')
     
     # ORGAOS DA POLICIA
-    orga_policia = orga_externo.filter('ORGE_TPOE_DK IN (60, 61, 68)') 
+    orga_policia = orga_externo.filter('ORGE_TPOE_DK IN (60, 61, 68)').\
+        withColumnRenamed('nm_delegacia', 'nm_orga_destino').\
+        withColumnRenamed('ORGE_ORGA_DK', 'ORGE_ORGA_DK_POLICIA')
     # APENAS DELEGACIAS
     # orga_delegacia = orga_externo.filter('ORGE_TPOE_DK IN (60, 61)')
-    doc_mov_cop = doc_mov_dest.join(orga_policia, doc_mov_dest.MOVI_ORGA_DK_DESTINO == orga_policia.ORGE_ORGA_DK)
+    doc_mov_cop = doc_mov_dest.join(orga_policia, doc_mov_dest.MOVI_ORGA_DK_DESTINO == orga_policia.ORGE_ORGA_DK_POLICIA)
     doc_lost = doc_mov_cop.withColumn("dt_fim_prazo", expr("date_add(dt_guia, stao_nr_dias_prazo)")).\
         withColumn('elapsed', lit(datediff(current_date(), 'dt_fim_prazo')).cast(IntegerType())).\
         filter('elapsed > 0')
 
     doc_lost = doc_lost.withColumn('alrt_key', uuidsha(*key_columns))
 
-    return doc_lost.select(columns)
+    return doc_lost.select(columns).distinct()
