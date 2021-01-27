@@ -3,23 +3,25 @@ from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
     col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('docu_nr_externo').alias('alrt_docu_nr_externo'), 
-    col('docu_tx_etiqueta').alias('alrt_docu_etiqueta'), 
-    col('cldc_ds_classe').alias('alrt_docu_classe'),
-    col('dt_fim_prazo').alias('alrt_docu_date'),  
+    col('dt_fim_prazo').alias('alrt_date_referencia'),  
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
-    col('elapsed').alias('alrt_dias_passados'),
+    col('elapsed').alias('alrt_dias_referencia'),
+    col('alrt_key')
 ]
 
 proto_columns = [
-    'docu_dk', 'docu_nr_mp', 'docu_nr_externo', 'docu_tx_etiqueta', 'docu_dt_cadastro',
-    'cldc_ds_classe', 'docu_orgi_orga_dk_responsavel', 'cldc_ds_hierarquia'
+    'docu_dk', 'docu_nr_mp', 'docu_orgi_orga_dk_responsavel', 'docu_dt_cadastro'
+]
+
+key_columns = [
+    col('docu_dk'),
+    col('dt_fim_prazo')
 ]
 
 def alerta_pa1a(options):
@@ -61,5 +63,7 @@ def alerta_pa1a(options):
         withColumn('elapsed', lit(datediff(current_date(), 'dt_fim_prazo')).cast(IntegerType()))
 
     resultado = doc_prorrogado.union(doc_nao_prorrogado)
+
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
     
     return resultado.filter('elapsed > 0').select(columns)

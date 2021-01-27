@@ -6,6 +6,22 @@ from pyspark.sql.functions import *
 from pyspark.sql.types import IntegerType
 
 from base import spark
+from utils import uuidsha
+
+
+columns = [
+    col('alrt_orgi_orga_dk'),
+    col('isps_indicador'),
+    col('isps_municipio'),
+    col('alrt_key'),
+    col('isps_ano_referencia')
+]
+
+key_columns = [
+    col('isps_indicador'),
+    col('isps_municipio'),
+    col('isps_ano_referencia')
+]
 
 
 def custom_slugify(value):
@@ -29,11 +45,11 @@ def alerta_isps(options):
     # Assim, não é necessário calculá-los a cada vez que rodar o alerta
     try:
         resultados = spark.sql("""
-            SELECT alrt_orgi_orga_dk, alrt_descricao, alrt_classe_hierarquia, alrt_dk
+            SELECT alrt_orgi_orga_dk, isps_indicador, isps_municipio, alrt_key, isps_ano_referencia
             FROM {0}.{1}
-            WHERE ano_referencia = {2}
+            WHERE isps_ano_referencia = {2}
         """.format(
-                options['schema_exadata_aux'],
+                options['schema_alertas'],
                 options['isps_tabela_aux'],
                 ano_referencia
             )
@@ -59,19 +75,19 @@ def alerta_isps(options):
             FROM agregados A
             JOIN (SELECT cod_mun, in009, in013, in023, in049 FROM agregados WHERE cod_mun = 33) R ON R.cod_mun != A.cod_mun
         )
-        SELECT municipio, ind1 as alrt_descricao 
+        SELECT municipio, ind1 as indicador 
         FROM indicadores
         WHERE ind1 IS NOT NULL
         UNION ALL
-        SELECT municipio, ind2 as alrt_descricao 
+        SELECT municipio, ind2 as indicador 
         FROM indicadores
         WHERE ind2 IS NOT NULL
         UNION ALL
-        SELECT municipio, ind3 as alrt_descricao 
+        SELECT municipio, ind3 as indicador 
         FROM indicadores
         WHERE ind3 IS NOT NULL
         UNION ALL
-        SELECT municipio, ind4 as alrt_descricao 
+        SELECT municipio, ind4 as indicador 
         FROM indicadores
         WHERE ind4 IS NOT NULL
     """.format(options["schema_opengeo"], ano_referencia))
@@ -94,19 +110,19 @@ def alerta_isps(options):
             FROM agregados A
             JOIN (SELECT cod_mun, in015, in016, in024, in046 FROM agregados WHERE cod_mun = 33) R ON R.cod_mun != A.cod_mun
         )
-        SELECT municipio, ind1 as alrt_descricao 
+        SELECT municipio, ind1 as indicador 
         FROM indicadores
         WHERE ind1 IS NOT NULL
         UNION ALL
-        SELECT municipio, ind2 as alrt_descricao 
+        SELECT municipio, ind2 as indicador 
         FROM indicadores
         WHERE ind2 IS NOT NULL
         UNION ALL
-        SELECT municipio, ind3 as alrt_descricao 
+        SELECT municipio, ind3 as indicador 
         FROM indicadores
         WHERE ind3 IS NOT NULL
         UNION ALL
-        SELECT municipio, ind4 as alrt_descricao 
+        SELECT municipio, ind4 as indicador 
         FROM indicadores
         WHERE ind4 IS NOT NULL
     """.format(options["schema_opengeo"], ano_referencia))
@@ -133,19 +149,19 @@ def alerta_isps(options):
             JOIN agregados R ON 1 = 1
             WHERE ano_referencia = {1}
         )
-        SELECT municipio, ind1 as alrt_descricao 
+        SELECT municipio, ind1 as indicador 
         FROM indicadores
         WHERE ind1 IS NOT NULL
         UNION ALL
-        SELECT municipio, ind2 as alrt_descricao 
+        SELECT municipio, ind2 as indicador 
         FROM indicadores
         WHERE ind2 IS NOT NULL
         UNION ALL
-        SELECT municipio, ind3 as alrt_descricao 
+        SELECT municipio, ind3 as indicador 
         FROM indicadores
         WHERE ind3 IS NOT NULL
         UNION ALL
-        SELECT municipio, ind4 as alrt_descricao 
+        SELECT municipio, ind4 as indicador 
         FROM indicadores
         WHERE ind4 IS NOT NULL
     """.format(options["schema_opengeo"], ano_referencia))
@@ -161,10 +177,7 @@ def alerta_isps(options):
     INDICADORES.createOrReplaceTempView('INDICADORES')
 
     resultados = spark.sql("""
-        SELECT P.id_orgao as alrt_orgi_orga_dk,
-            I.alrt_descricao,
-            I.municipio as alrt_classe_hierarquia,
-            custom_slugify(concat_ws('_', P.id_orgao, I.alrt_descricao, I.municipio)) as alrt_dk
+        SELECT P.id_orgao as alrt_orgi_orga_dk, I.indicador as isps_indicador, I.municipio as isps_municipio
         FROM {0}.atualizacao_pj_pacote P
         JOIN {1}.institucional_orgaos_meio_ambiente M ON M.cod_orgao = P.id_orgao
         JOIN INDICADORES I ON I.municipio = M.comarca
@@ -173,9 +186,12 @@ def alerta_isps(options):
     resultados.createOrReplaceTempView('RESULTADOS_ISPS')
     spark.catalog.cacheTable("RESULTADOS_ISPS")
 
-    resultados.withColumn('ano_referencia', lit(2018).cast(IntegerType()))\
-        .write.mode('append').saveAsTable('{}.{}'.format(
-            options['schema_exadata_aux'], options['isps_tabela_aux']
-        ))
+    resultados = resultados.withColumn('isps_ano_referencia', lit(ano_referencia).cast(IntegerType()))\
+        .withColumn('alrt_key', uuidsha(*key_columns))
+
+    resultados = resultados.select(columns)
+    resultados.write.mode('append').saveAsTable('{}.{}'.format(
+        options['schema_alertas'], options['isps_tabela_aux']
+    ))
 
     return resultados

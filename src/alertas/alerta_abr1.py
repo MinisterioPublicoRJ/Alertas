@@ -2,11 +2,19 @@
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 
 columns = [
     col('id_orgao').alias('alrt_orgi_orga_dk'),
-    col('n_procedimentos').alias('alrt_dias_passados')
+    col('nr_procedimentos').alias('abr1_nr_procedimentos'),
+    col('alrt_key'),
+    col('ano_mes').alias('abr1_ano_mes')
+
+]
+
+key_columns = [
+    col('ano_mes')
 ]
 
 
@@ -31,11 +39,16 @@ def alerta_abr1(options):
                 OR month(current_date()) IN ({months})
             )
     )
-    SELECT docu_orgi_orga_dk_responsavel AS id_orgao, COUNT(1) AS n_procedimentos
+    SELECT
+        docu_orgi_orga_dk_responsavel AS id_orgao,
+        COUNT(1) AS nr_procedimentos,
+        concat_ws('', year(current_date()), month(current_date())) as ano_mes
     FROM procedimentos
     INNER JOIN {schema_aux}.atualizacao_pj_pacote pac ON pac.id_orgao = docu_orgi_orga_dk_responsavel
 	AND UPPER(orgi_nm_orgao) LIKE '%TUTELA%'
     GROUP BY docu_orgi_orga_dk_responsavel
     """.format(schema_aux=options["schema_exadata_aux"], months=months))
+
+    df = df.withColumn('alrt_key', uuidsha(*key_columns))
 
     return df.select(columns)

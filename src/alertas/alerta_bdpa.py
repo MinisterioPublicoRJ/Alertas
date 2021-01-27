@@ -1,20 +1,24 @@
 #-*-coding:utf-8-*-
-from pyspark.sql.types import IntegerType
+from pyspark.sql.types import IntegerType, TimestampType
 from pyspark.sql.functions import *
 
-
 from base import spark
+from utils import uuidsha
+
 
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
     col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('docu_nr_externo').alias('alrt_docu_nr_externo'), 
-    col('docu_tx_etiqueta').alias('alrt_docu_etiqueta'), 
-    col('cldc_ds_classe').alias('alrt_docu_classe'),
-    col('dt_fim_prazo').alias('alrt_docu_date'),  
+    col('dt_fim_prazo').alias('alrt_date_referencia').cast(TimestampType()),  
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('nm_delegacia').alias('alrt_classe_hierarquia'),
-    col('elapsed').alias('alrt_dias_passados'),
+    col('elapsed').alias('alrt_dias_referencia'),
+    col('nm_delegacia').alias('alrt_info_adicional'),
+    col('alrt_key')
+]
+
+key_columns = [
+    col('docu_dk'),
+    col('dt_fim_prazo')
 ]
 
 def alerta_bdpa(options):
@@ -78,12 +82,16 @@ def alerta_bdpa(options):
             'inner')
     
     # ORGAOS DA POLICIA
-    orga_policia = orga_externo.filter('ORGE_TPOE_DK IN (60, 61, 68)') 
+    orga_policia = orga_externo.filter('ORGE_TPOE_DK IN (60, 61, 68)').\
+        withColumnRenamed('nm_delegacia', 'nm_orga_destino').\
+        withColumnRenamed('ORGE_ORGA_DK', 'ORGE_ORGA_DK_POLICIA')
     # APENAS DELEGACIAS
     # orga_delegacia = orga_externo.filter('ORGE_TPOE_DK IN (60, 61)')
-    doc_mov_cop = doc_mov_dest.join(orga_policia, doc_mov_dest.MOVI_ORGA_DK_DESTINO == orga_policia.ORGE_ORGA_DK)
+    doc_mov_cop = doc_mov_dest.join(orga_policia, doc_mov_dest.MOVI_ORGA_DK_DESTINO == orga_policia.ORGE_ORGA_DK_POLICIA)
     doc_lost = doc_mov_cop.withColumn("dt_fim_prazo", expr("date_add(dt_guia, stao_nr_dias_prazo)")).\
         withColumn('elapsed', lit(datediff(current_date(), 'dt_fim_prazo')).cast(IntegerType())).\
         filter('elapsed > 0')
 
-    return doc_lost.select(columns)
+    doc_lost = doc_lost.withColumn('alrt_key', uuidsha(*key_columns))
+
+    return doc_lost.select(columns).distinct()
