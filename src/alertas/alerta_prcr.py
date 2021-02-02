@@ -1,31 +1,27 @@
 #-*-coding:utf-8-*-
-from pyspark.sql.types import IntegerType, DateType 
+from pyspark.sql.types import IntegerType, TimestampType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 
 columns = [
-    col('docu_dk').alias('alrt_docu_dk'), 
-    col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('docu_nr_externo').alias('alrt_docu_nr_externo'), 
-    col('docu_tx_etiqueta').alias('alrt_docu_etiqueta'), 
-    col('cldc_ds_classe').alias('alrt_docu_classe'),
-    col('docu_dt_cadastro').alias('alrt_docu_date'),  
+    col('docu_dk').alias('alrt_docu_dk'),
+    col('docu_nr_mp').alias('alrt_docu_nr_mp'),
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
-    col('elapsed').alias('alrt_dias_passados')
+    col('elapsed').alias('alrt_dias_referencia')
 ]
 
 columns_alias = [
-    col('alrt_docu_dk'), 
-    col('alrt_docu_nr_mp'), 
-    col('alrt_docu_nr_externo'), 
-    col('alrt_docu_etiqueta'), 
-    col('alrt_docu_classe'),
-    col('alrt_docu_date'),  
+    col('alrt_docu_dk'),
+    col('alrt_docu_nr_mp'),
     col('alrt_orgi_orga_dk'),
-    col('alrt_classe_hierarquia')
+    col('alrt_dias_referencia')
+]
+
+key_columns = [
+    col('alrt_docu_dk')
 ]
 
 def alerta_prcr(options):
@@ -196,7 +192,7 @@ def alerta_prcr(options):
             elapsed as adpr_dias_prescrito
         FROM TEMPO_PARA_PRESCRICAO
     """).write.mode('overwrite').saveAsTable('{}.{}'.format(
-            options['schema_exadata_aux'],
+            options['schema_alertas'],
             options['prescricao_tabela_detalhe']
         )
     )
@@ -213,9 +209,10 @@ def alerta_prcr(options):
     """.format(
             LIMIAR_PRESCRICAO_PROXIMA=LIMIAR_PRESCRICAO_PROXIMA)
     )
-    max_min_status = subtipos.groupBy(columns[:-1]).agg(min('status_prescricao'), max('status_prescricao')).\
+    max_min_status = subtipos.groupBy(columns[:-1]).agg(min('status_prescricao'), max('status_prescricao'), min('elapsed')).\
         withColumnRenamed('max(status_prescricao)', 'max_status').\
-        withColumnRenamed('min(status_prescricao)', 'min_status')
+        withColumnRenamed('min(status_prescricao)', 'min_status').\
+        withColumnRenamed('min(elapsed)', 'alrt_dias_referencia')
     max_min_status.createOrReplaceTempView('MAX_MIN_STATUS')
 
     # Os WHEN precisam ser feitos na ordem PRCR1, 2, 3 e depois 4!
@@ -238,5 +235,7 @@ def alerta_prcr(options):
         FROM MAX_MIN_STATUS T
     """)
     resultado = resultado.filter('alrt_sigla IS NOT NULL').select(columns_alias + ['alrt_sigla', 'alrt_descricao'])
+
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
 
     return resultado

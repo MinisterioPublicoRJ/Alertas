@@ -3,19 +3,22 @@ from pyspark.sql.types import IntegerType, StringType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 
 columns = [
-    col('itcn_dk').alias('alrt_dk'),
-    col('docu_dk').alias('alrt_docu_dk'), 
-    col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('docu_nr_externo').alias('alrt_docu_nr_externo'), 
-    col('docu_tx_etiqueta').alias('alrt_docu_etiqueta'), 
-    col('cldc_ds_classe').alias('alrt_docu_classe'),
-    col('itcn_dt_cadastro').alias('alrt_docu_date'),  
+    col('itcn_dk').alias('alrt_dk_referencia'),
+    col('docu_dk').alias('alrt_docu_dk'),
+    col('docu_nr_mp').alias('alrt_docu_nr_mp'),
+    col('itcn_dt_cadastro').alias('alrt_date_referencia'),
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
-    col('cldc_ds_hierarquia').alias('alrt_classe_hierarquia'),
-    col('elapsed').alias('alrt_dias_passados'),
+    col('elapsed').alias('alrt_dias_referencia'),
+    col('alrt_key')
+]
+
+key_columns = [
+    col('docu_dk'),
+    col('itcn_dk')
 ]
 
 
@@ -35,5 +38,6 @@ def alerta_gate(options):
     resultado = doc_sem_vista.union(doc_vista_anterior).\
         withColumn('elapsed', lit(datediff(current_date(), 'ITCN_DT_CADASTRO')).cast(IntegerType()))
 
-    resultado = resultado.withColumn("itcn_dk", col("itcn_dk").cast(StringType()))
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
+
     return resultado.select(columns)
