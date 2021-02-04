@@ -35,5 +35,5 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-impala-shell -q "INVALIDATE METADATA ${a}.mmps_alertas"
+impala-shell -q "INVALIDATE METADATA"
 impala-shell -q "COMPUTE STATS ${a}.mmps_alertas"

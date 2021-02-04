@@ -24,15 +24,15 @@ key_columns = [
 def alerta_ppfp(options):
     documento = spark.sql("from documentos_ativos").\
         filter('docu_tpst_dk != 3').\
-        filter('docu_cldc_dk = 395').\
-        withColumn('elapsed', lit(datediff(current_date(), 'docu_dt_cadastro')).cast(IntegerType()))
+        filter('docu_cldc_dk = 395')
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
     apenso = spark.table('%s.mcpr_correlacionamento' % options['schema_exadata']).\
         filter('corr_tpco_dk in (2, 6)')
     vista = spark.sql("from vista")
     andamento = spark.table('%s.mcpr_andamento' % options['schema_exadata']).\
         filter('pcao_dt_cancelamento IS NULL')
-    sub_andamento = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).filter('stao_tppr_dk = 6291')
+    prorrogacao = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).filter('stao_tppr_dk = 6291')
+    instauracao = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).filter('stao_tppr_dk = 6011')
    
     # Documento não pode estar apenso ou anexo
     doc_apenso = documento.join(apenso, documento.DOCU_DK == apenso.CORR_DOCU_DK2, 'left').\
@@ -40,23 +40,34 @@ def alerta_ppfp(options):
     doc_classe = doc_apenso.join(broadcast(classe), doc_apenso.DOCU_CLDC_DK == classe.cldc_dk, 'left')
 
     doc_andamento = vista.join(andamento, vista.VIST_DK == andamento.PCAO_VIST_DK, 'inner')
-    doc_sub_andamento = doc_andamento.join(sub_andamento, doc_andamento.PCAO_DK == sub_andamento.STAO_PCAO_DK, 'inner')
-    doc_totais = doc_classe.join(doc_sub_andamento, doc_classe.DOCU_DK == doc_sub_andamento.VIST_DOCU_DK, 'left')
+
+    doc_prorrogados = doc_andamento.join(prorrogacao, doc_andamento.PCAO_DK == prorrogacao.STAO_PCAO_DK, 'inner')
+    doc_instauracao = doc_andamento.join(instauracao, doc_andamento.PCAO_DK == instauracao.STAO_PCAO_DK, 'inner')
+
+    doc_totais = doc_classe.join(doc_instauracao, doc_classe.DOCU_DK == doc_instauracao.VIST_DOCU_DK, 'left')
+    # Caso não tenha data de instauração de PP, utilizar data de cadastro
+    doc_data_inicial = doc_totais.\
+        withColumn('docu_dt_cadastro', when(col('pcao_dt_andamento').isNotNull(), col('pcao_dt_andamento')).otherwise(col('docu_dt_cadastro'))).\
+        groupBy(['DOCU_DK', 'DOCU_NR_MP', 'DOCU_ORGI_ORGA_DK_RESPONSAVEL']).agg({'docu_dt_cadastro': 'max'}).\
+        withColumnRenamed('max(docu_dt_cadastro)', 'data_inicio').\
+        withColumn('elapsed', lit(datediff(current_date(), 'data_inicio')).cast(IntegerType()))
+
+    doc_totais = doc_data_inicial.join(doc_prorrogados, doc_data_inicial.DOCU_DK == doc_prorrogados.VIST_DOCU_DK, 'left')
 
     # Separar em alertas PPFP e PPPV
     # Documentos fora do prazo (PPFP)
     # Elapsed = dias desde que o prazo venceu
     doc_prorrogado = doc_totais.filter('stao_dk is not null').filter('elapsed > 180').\
         withColumn('elapsed', col('elapsed') - 180)
-    doc_nao_prorrogado = doc_totais.filter('stao_dk is null').filter('elapsed > 30').\
-        withColumn('elapsed', col('elapsed') - 30)
+    doc_nao_prorrogado = doc_totais.filter('stao_dk is null').filter('elapsed > 90').\
+        withColumn('elapsed', col('elapsed') - 90)
 
     # Documentos próximos de vencer (PPPV)
     # Elapsed = dias faltantes para vencer o prazo
     doc_prorrogado_proximo = doc_totais.filter('stao_dk is not null').filter('elapsed > 160 AND elapsed <= 180').\
         withColumn('elapsed', 180 - col('elapsed'))
-    doc_nao_prorrogado_proximo = doc_totais.filter('stao_dk is null').filter('elapsed > 10 AND elapsed <= 30').\
-        withColumn('elapsed', 30 - col('elapsed'))
+    doc_nao_prorrogado_proximo = doc_totais.filter('stao_dk is null').filter('elapsed > 70 AND elapsed <= 90').\
+        withColumn('elapsed', 90 - col('elapsed'))
 
     resultado_ppfp = doc_prorrogado.union(doc_nao_prorrogado).\
         withColumn('alrt_sigla', lit('PPFP').cast(StringType())).\
