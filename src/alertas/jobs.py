@@ -279,6 +279,7 @@ class AlertaSession:
         return True if result_table_check > 0 else False
 
     def write_dataframe(self):
+        spark.catalog.clearCache()
         with Timer():
             for table in self.TABLE_NAMES:
                 print("Escrevendo a tabela {}".format(table))
@@ -305,7 +306,7 @@ class AlertaSession:
 
                 if current_hist:
                     hist_table_df = current_hist.union(hist_table_df)
-                    hist_table_df.write.saveAsTable(hist_table_name + "_temp")
+                    hist_table_df.write.mode("overwrite").saveAsTable(hist_table_name + "_temp")
                     hist_table_df = spark.table(hist_table_name + "_temp")
                     hist_table_df.coalesce(3).write.mode("overwrite").insertInto(hist_table_name, overwrite=True)
                     spark.sql("drop table {0}".format(hist_table_name + "_temp"))
