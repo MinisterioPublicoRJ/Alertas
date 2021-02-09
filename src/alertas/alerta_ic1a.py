@@ -27,7 +27,7 @@ def alerta_ic1a(options):
     documento = spark.sql("from documentos_ativos").\
         filter('docu_tpst_dk != 3').\
         filter("docu_cldc_dk = 392")
-    classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
+    # classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
     apenso = spark.table('%s.mcpr_correlacionamento' % options['schema_exadata']).\
         filter('corr_tpco_dk in (2, 6)')
     vista = spark.sql("from vista")
@@ -35,12 +35,16 @@ def alerta_ic1a(options):
         filter('pcao_dt_cancelamento IS NULL')
     sub_andamento = spark.table('%s.mcpr_sub_andamento' % options['schema_exadata']).\
         filter('stao_tppr_dk in (6012, 6002, 6511, 6291)')
+    orgao_carga = spark.table('%s.orgi_orgao' % options['schema_exadata']).\
+        filter("orgi_nm_orgao LIKE '%GRUPO DE ATUAÇÃO%'")
     #tp_andamento = spark.table('%s.mmps_tp_andamento' % options['schema_exadata_aux'])
 
     doc_apenso = documento.join(apenso, documento.DOCU_DK == apenso.CORR_DOCU_DK2, 'left').\
         filter('corr_tpco_dk is null')
-    doc_classe = doc_apenso.join(broadcast(classe), doc_apenso.DOCU_CLDC_DK == classe.cldc_dk, 'left')
-    doc_vista = doc_classe.join(vista, doc_classe.DOCU_DK == vista.VIST_DOCU_DK, 'inner')
+    # doc_classe = doc_apenso.join(broadcast(classe), doc_apenso.DOCU_CLDC_DK == classe.cldc_dk, 'left')
+    doc_orgao = doc_apenso.join(broadcast(orgao_carga), doc_apenso.DOCU_ORGI_ORGA_DK_CARGA == orgao_carga.ORGI_DK, 'left').\
+        filter('orgi_dk is null')
+    doc_vista = doc_orgao.join(vista, doc_orgao.DOCU_DK == vista.VIST_DOCU_DK, 'inner')
     doc_andamento = doc_vista.join(andamento, doc_vista.VIST_DK == andamento.PCAO_VIST_DK, 'inner')
     doc_sub_andamento = doc_andamento.join(sub_andamento, doc_andamento.PCAO_DK == sub_andamento.STAO_PCAO_DK, 'inner')
     #doc_sub_andamento = doc_sub_andamento.join(tp_andamento, doc_sub_andamento.STAO_TPPR_DK == tp_andamento.ID, 'inner')
