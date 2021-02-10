@@ -187,13 +187,13 @@ class AlertaSession:
         with Timer():
             spark.table('%s.mcpr_documento' % self.options['schema_exadata']) \
                 .createOrReplaceTempView("documento")
-            spark.catalog.cacheTable("documento")
-            spark.sql("from documento").count()
+            #spark.catalog.cacheTable("documento")
+            #spark.sql("from documento").count()
 
             spark.table('%s.mcpr_vista' % self.options['schema_exadata']) \
                 .createOrReplaceTempView("vista")
-            spark.catalog.cacheTable("vista")
-            spark.sql("from vista").count()
+            # spark.catalog.cacheTable("vista")
+            # spark.sql("from vista").count()
 
             # Deixar aqui por enquanto, para corrigir mais rapidamente o bug
             # Será necessária uma mudança maior de padronização mais à frente
@@ -248,6 +248,7 @@ class AlertaSession:
             spark.sql("from documentos_ativos").count()
 
             for alerta, (func, table, columns) in self.alerta_list.items():
+                spark.sparkContext.setJobGroup(alerta, alerta)
                 self.generateAlerta(alerta, func, table, columns)
             self.write_dataframe()
             # self.generateTypesTable()
@@ -271,7 +272,7 @@ class AlertaSession:
                 dataframe = dataframe.withColumn(colname, lit(None).cast(coltype())) if colname not in dataframe.columns else dataframe
 
             colnames = [c[0] for c in columns]
-            dataframe.select(colnames).write.mode("append").saveAsTable(self.temp_name(table))
+            dataframe.select(colnames).coalesce(20).write.mode("append").saveAsTable(self.temp_name(table))
 
     def check_table_exists(self, schema, table_name):
         spark.sql("use %s" % schema)
@@ -282,6 +283,7 @@ class AlertaSession:
         spark.catalog.clearCache()
         with Timer():
             for table in self.TABLE_NAMES:
+                spark.sparkContext.setJobGroup("Final tables", table)
                 print("Escrevendo a tabela {}".format(table))
                 temp_table_df = spark.table(self.temp_name(table))
 
