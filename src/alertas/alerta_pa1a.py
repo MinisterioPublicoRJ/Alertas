@@ -28,21 +28,19 @@ def alerta_pa1a(options):
     ANDAMENTO_PRORROGACAO = 6291
     ANDAMENTO_INSTAURACAO = 6013
     ANDAMENTOS_TOTAL = (ANDAMENTO_PRORROGACAO, ANDAMENTO_INSTAURACAO)
+    TAMANHO_PRAZO = 365
 
     resultado = spark.sql("""
         SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel,
-            to_timestamp(date_add(dt_inicio, nr_dias_prazo), 'yyyy-MM-dd HH:mm:ss') as dt_fim_prazo,
-            (datediff(current_timestamp(), dt_inicio) - nr_dias_prazo) as elapsed
+            to_timestamp(date_add(dt_inicio, {TAMANHO_PRAZO}), 'yyyy-MM-dd HH:mm:ss') as dt_fim_prazo,
+            (datediff(current_timestamp(), dt_inicio) - {TAMANHO_PRAZO}) as elapsed
         FROM
         (
             SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel,
-            CASE WHEN MAX(dt_instauracao) IS NOT NULL THEN MAX(dt_instauracao) ELSE docu_dt_cadastro END AS dt_inicio,
-            365*(1 + SUM(nr_prorrogacoes)) as nr_dias_prazo
+            CASE WHEN MAX(pcao_dt_andamento) IS NOT NULL THEN MAX(pcao_dt_andamento) ELSE docu_dt_cadastro END AS dt_inicio
             FROM 
             (
-                SELECT docu_dk, docu_nr_mp, docu_dt_cadastro, docu_orgi_orga_dk_responsavel,
-                CASE WHEN stao_tppr_dk = {ANDAMENTO_INSTAURACAO} THEN pcao_dt_andamento ELSE NULL END as dt_instauracao,
-                CASE WHEN stao_tppr_dk = {ANDAMENTO_PRORROGACAO} THEN 1 ELSE 0 END AS nr_prorrogacoes
+                SELECT docu_dk, docu_nr_mp, docu_dt_cadastro, docu_orgi_orga_dk_responsavel, pcao_dt_andamento
                 FROM documentos_ativos
                 LEFT JOIN (SELECT * FROM {schema_exadata}.mcpr_correlacionamento WHERE corr_tpco_dk in (2, 6)) C ON C.corr_docu_dk2 = docu_dk
                 LEFT JOIN (
@@ -59,12 +57,13 @@ def alerta_pa1a(options):
             ) A
             GROUP BY docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel, docu_dt_cadastro
         ) B
-        WHERE datediff(current_timestamp(), dt_inicio) > nr_dias_prazo
+        WHERE datediff(current_timestamp(), dt_inicio) > {TAMANHO_PRAZO}
     """.format(
             schema_exadata=options['schema_exadata'],
             ANDAMENTO_INSTAURACAO=ANDAMENTO_INSTAURACAO,
             ANDAMENTO_PRORROGACAO=ANDAMENTO_PRORROGACAO,
-            ANDAMENTOS_TOTAL=ANDAMENTOS_TOTAL
+            ANDAMENTOS_TOTAL=ANDAMENTOS_TOTAL,
+            TAMANHO_PRAZO=TAMANHO_PRAZO
         )
     )
 
