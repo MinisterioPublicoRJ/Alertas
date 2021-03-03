@@ -14,6 +14,7 @@ columns = [
     col('dt_fim_prazo').alias('alrt_date_referencia'),  
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('elapsed').alias('alrt_dias_referencia'),
+    col('stao_dk').alias('alrt_dk_referencia'),
     col('alrt_key'),
 ]
 
@@ -31,14 +32,16 @@ def alerta_ic1a(options):
     resultado = spark.sql("""
         SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel,
             to_timestamp(date_add(dt_inicio, {TAMANHO_PRAZO}), 'yyyy-MM-dd HH:mm:ss') as dt_fim_prazo,
-            (datediff(current_timestamp(), dt_inicio) - {TAMANHO_PRAZO}) as elapsed
+            (datediff(current_timestamp(), dt_inicio) - {TAMANHO_PRAZO}) as elapsed,
+            stao_dk
         FROM
         (
             SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel,
-            CASE WHEN MAX(pcao_dt_andamento) IS NOT NULL THEN MAX(pcao_dt_andamento) ELSE docu_dt_cadastro END AS dt_inicio
+            CASE WHEN MAX(pcao_dt_andamento) IS NOT NULL THEN MAX(pcao_dt_andamento) ELSE docu_dt_cadastro END AS dt_inicio,
+            CASE WHEN MAX(stao_dk) IS NOT NULL THEN MAX(stao_dk) ELSE NULL END AS stao_dk
             FROM 
             (
-                SELECT docu_dk, docu_nr_mp, docu_dt_cadastro, docu_orgi_orga_dk_responsavel, pcao_dt_andamento
+                SELECT docu_dk, docu_nr_mp, docu_dt_cadastro, docu_orgi_orga_dk_responsavel, pcao_dt_andamento, stao_dk
                 FROM documentos_ativos
                 LEFT JOIN (SELECT * FROM {schema_exadata}.mcpr_correlacionamento WHERE corr_tpco_dk in (2, 6)) C ON C.corr_docu_dk2 = docu_dk
                 LEFT JOIN (SELECT * FROM {schema_exadata}.orgi_orgao WHERE orgi_nm_orgao LIKE '%GRUPO DE ATUAÇÃO%') O ON O.orgi_dk = docu_orgi_orga_dk_carga
