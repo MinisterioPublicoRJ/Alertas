@@ -54,6 +54,7 @@ class AlertaSession:
 
     PRCR_DETALHE_TABLE_NAME = "mmps_alerta_detalhe_prcr"
     ISPS_AUX_TABLE_NAME = "mmps_alerta_isps_aux"
+    ABR1_AUX_TABLE_NAME = "mmps_alerta_abr1_aux"
 
     # Ordem em que as colunas estão salvas na tabela final
     # Esta ordem deve ser mantida por conta do insertInto que é realizado
@@ -126,6 +127,7 @@ class AlertaSession:
         # Setando o nome das tabelas de detalhe aqui, podemos centralizá-las como atributos de AlertaSession
         self.options['prescricao_tabela_detalhe'] = self.PRCR_DETALHE_TABLE_NAME
         self.options['isps_tabela_aux'] = self.ISPS_AUX_TABLE_NAME
+        self.options['abr1_tabela_aux'] = self.ABR1_AUX_TABLE_NAME
 
         self.hist_name = lambda x: 'hist_' + x
 
