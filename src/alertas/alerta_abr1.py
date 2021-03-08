@@ -31,6 +31,7 @@ def alerta_abr1(options):
         FROM documentos_ativos
         WHERE datediff(last_day(now()), docu_dt_cadastro) / 365.2425 > 1
             AND docu_dt_cancelamento IS NULL
+            AND docu_cldc_dk IN (51219, 51220, 51221, 51222, 51223, 392, 395)
             AND docu_tpst_dk != 3
             AND (
                 year(current_date()) = 2020 AND month(current_date()) = 11
