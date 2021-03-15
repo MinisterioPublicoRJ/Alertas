@@ -25,30 +25,34 @@ def alerta_abr1(options):
     else:
         months = "4"
 
-    df = spark.sql("""
-     WITH procedimentos as (
-        SELECT docu_orgi_orga_dk_responsavel
-        FROM documento
-        WHERE docu_cldc_dk IN (51219, 51220, 51221, 51222, 51223, 392, 395)
-            AND datediff(last_day(now()), docu_dt_cadastro) / 365.2425 > 1
+    procedimentos = spark.sql("""
+        SELECT 
+            docu_orgi_orga_dk_responsavel, docu_nr_mp, docu_dt_cadastro, docu_dk
+        FROM documentos_ativos
+        WHERE datediff(last_day(now()), docu_dt_cadastro) / 365.2425 > 1
             AND docu_dt_cancelamento IS NULL
-            AND docu_fsdc_dk = 1
-            AND NOT docu_tpst_dk = 11
+            AND docu_cldc_dk IN (51219, 51220, 51221, 51222, 51223, 392, 395)
+            AND docu_tpst_dk != 3
             AND (
                 year(current_date()) = 2020 AND month(current_date()) = 11
                 OR month(current_date()) IN ({months})
             )
-    )
+    """.format(schema_exadata=options["schema_exadata"], months=months))
+    procedimentos.createOrReplaceTempView("procedimentos")
+
+    df = spark.sql("""
     SELECT
         docu_orgi_orga_dk_responsavel AS id_orgao,
         COUNT(1) AS nr_procedimentos,
         concat_ws('', year(current_date()), month(current_date())) as ano_mes
     FROM procedimentos
     INNER JOIN {schema_aux}.atualizacao_pj_pacote pac ON pac.id_orgao = docu_orgi_orga_dk_responsavel
-	AND UPPER(orgi_nm_orgao) LIKE '%TUTELA%'
+	    AND UPPER(orgi_nm_orgao) LIKE '%TUTELA%'
     GROUP BY docu_orgi_orga_dk_responsavel
-    """.format(schema_aux=options["schema_exadata_aux"], months=months))
+    """.format(schema_aux=options["schema_exadata_aux"]))
 
     df = df.withColumn('alrt_key', uuidsha(*key_columns))
+
+    procedimentos.write.mode("overwrite").saveAsTable("{}.{}".format(options['schema_alertas'], options['abr1_tabela_aux']))
 
     return df.select(columns)
