@@ -9,7 +9,7 @@ from utils import uuidsha
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
     col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
+    col('vist_orgi_orga_dk').alias('alrt_orgi_orga_dk'),
     col('alrt_key'),
     col('vist_dk').alias('alrt_dk_referencia'),
 ]
@@ -21,12 +21,9 @@ key_columns = [
 
 def alerta_vadf(options):
     documento = spark.sql("from documento")
-    classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux'])
     vista = spark.sql("from vista")
-   
-    doc_classe = documento.join(broadcast(classe), documento.DOCU_CLDC_DK == classe.cldc_dk, 'left')
 
-    resultado = doc_classe.join(vista, vista.VIST_DOCU_DK == doc_classe.DOCU_DK, 'inner').\
+    resultado = documento.join(vista, vista.VIST_DOCU_DK == documento.DOCU_DK, 'inner').\
         filter('docu_fsdc_dk != 1').\
         filter('docu_tpst_dk != 11').\
         filter('vist_dt_fechamento_vista IS NULL')
