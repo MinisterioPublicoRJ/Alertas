@@ -15,6 +15,7 @@ columns = [
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('elapsed').alias('alrt_dias_referencia'),
     col('stao_dk').alias('alrt_dk_referencia'),
+    col('hierarquia').alias('alrt_info_adicional'),
     col('alrt_key'),
 ]
 
@@ -33,7 +34,8 @@ def alerta_ic1a(options):
         SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel,
             to_timestamp(date_add(dt_inicio, {TAMANHO_PRAZO}), 'yyyy-MM-dd HH:mm:ss') as dt_fim_prazo,
             (datediff(current_timestamp(), dt_inicio) - {TAMANHO_PRAZO}) as elapsed,
-            stao_dk
+            B.stao_dk,
+            CASE WHEN hierarquia IS NOT NULL THEN hierarquia ELSE 'Cadastro do Procedimento no Sistema' END AS hierarquia
         FROM
         (
             SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel,
@@ -60,9 +62,12 @@ def alerta_ic1a(options):
             ) A
             GROUP BY docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel, docu_dt_cadastro
         ) B
+        LEFT JOIN {schema_exadata}.mcpr_sub_andamento S ON B.stao_dk = S.stao_dk
+        LEFT JOIN {schema_exadata_aux}.mmps_tp_andamento ON stao_tppr_dk = id
         WHERE datediff(current_timestamp(), dt_inicio) > {TAMANHO_PRAZO}
     """.format(
             schema_exadata=options['schema_exadata'],
+            schema_exadata_aux=options['schema_exadata_aux'],
             ANDAMENTO_INSTAURACAO=ANDAMENTO_INSTAURACAO,
             ANDAMENTO_PRORROGACAO=ANDAMENTO_PRORROGACAO,
             ANDAMENTOS_TOTAL=ANDAMENTOS_TOTAL,
