@@ -9,7 +9,7 @@ from utils import uuidsha
 columns = [
     col('docu_dk').alias('alrt_docu_dk'), 
     col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('vist_orgi_orga_dk').alias('alrt_orgi_orga_dk'),
+    col('vist_orgi_orga_dk').alias('alrt_orgi_orga_dk').cast(IntegerType()),
     col('alrt_key'),
     col('vist_dk').alias('alrt_dk_referencia'),
 ]
