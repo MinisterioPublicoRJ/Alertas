@@ -16,7 +16,8 @@ columns = [
     col('data_autuacao').alias('alrt_date_referencia'),  
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('elapsed').alias('alrt_dias_referencia'),
-    col('alrt_key')
+    col('alrt_key'),
+    col('alrt_sigla')
 ]
 
 key_columns = [
@@ -31,7 +32,8 @@ def alerta_nf30(options):
     ANDAMENTOS_TOTAL = ANDAMENTOS_CONVERSAO + ANDAMENTOS_PRORROGACAO + ANDAMENTOS_AUTUACAO
 
     resultado = spark.sql("""
-        SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel, dt_inicio as data_autuacao, datediff(current_timestamp(), dt_inicio) as elapsed
+        SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel, dt_inicio as data_autuacao, datediff(current_timestamp(), dt_inicio) as elapsed,
+        CASE WHEN datediff(current_timestamp(), dt_inicio) > 120 THEN 'NF120' ELSE 'NF30' END AS alrt_sigla
         FROM
         (
             SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel,
