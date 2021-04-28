@@ -21,7 +21,7 @@ key_columns = [
     col('dt_tac'),
 ]
 
-def alerta_taco(options):
+def alerta_ctac(options):
     ANDAMENTOS_OFICIO = (7436, 6581, 6497, 6614, 6615, 6616, 6617, 6618, 6619, 6126, 6989)
     ANDAMENTOS_TAC = (1007, 6304, 7858, 6326, 6655, 6670, 4114)
     ANDAMENTOS_TOTAL = ANDAMENTOS_TAC + ANDAMENTOS_OFICIO

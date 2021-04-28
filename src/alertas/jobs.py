@@ -40,7 +40,7 @@ from alerta_abr1 import alerta_abr1
 from alerta_isps import alerta_isps
 from alerta_febt import alerta_febt
 from alerta_comp import alerta_comp
-from alerta_taco import alerta_taco
+from alerta_ctac import alerta_ctac
 
 
 class AlertaSession:
@@ -117,7 +117,7 @@ class AlertaSession:
         'ISPS': [alerta_isps, ISPS_TABLE_NAME, COLUMN_ORDER_ISPS],
         'COMP': [alerta_comp, COMP_TABLE_NAME, COLUMN_ORDER_COMP],
         'FEBT': [alerta_febt, RO_TABLE_NAME, COLUMN_ORDER_RO],
-        'TACO': [alerta_taco, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'CTAC': [alerta_ctac, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
     }
 
     TABLE_NAMES = set(x[1] for x in alerta_list.values())
@@ -173,7 +173,7 @@ class AlertaSession:
             ('ISPS', 'Indicadores de Saneamento em Vermelho'),
             ('COMP', 'Compras fora do padrão'),
             ('FEBT', 'Mais de 30 dias sem novo RO'),
-            ('TACO', 'TAC sem ofício ao CSMP'),
+            ('CTAC', 'TAC sem ofício ao CSMP'),
         ]
 
         fields = [
