@@ -23,7 +23,7 @@ key_columns = [
 
 def alerta_taco(options):
     ANDAMENTOS_OFICIO = (7436, 6581, 6497, 6614, 6615, 6616, 6617, 6618, 6619, 6126, 6989)
-    ANDAMENTOS_TAC = (6034, 6631, 7751, 7752, 6035, 7754, 7753, 6007, 6632)
+    ANDAMENTOS_TAC = (1007, 6304, 7858, 6326, 6655, 6670, 4114)
     ANDAMENTOS_TOTAL = ANDAMENTOS_TAC + ANDAMENTOS_OFICIO
 
     REGEX_CSMP = (
@@ -34,31 +34,30 @@ def alerta_taco(options):
         SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel, dt_tac, datediff(current_timestamp(), dt_tac) as elapsed
         FROM
         (
-            SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel,
-            MAX(dt_tac) AS dt_tac
+            SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel, MAX(dt_tac) AS dt_tac, MAX(dt_oficio_csmp) as dt_oficio
             FROM 
             (
-                SELECT docu_dk, docu_nr_mp, docu_dt_cadastro, docu_orgi_orga_dk_responsavel,
+                SELECT docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel,
                 CASE WHEN stao_tppr_dk IN {ANDAMENTOS_OFICIO} THEN pcao_dt_andamento ELSE NULL END as dt_oficio_csmp,
                 CASE WHEN stao_tppr_dk IN {ANDAMENTOS_TAC} THEN pcao_dt_andamento ELSE NULL END as dt_tac
-                FROM documentos_ativos
-                LEFT JOIN (SELECT * FROM {schema_exadata}.mcpr_correlacionamento WHERE corr_tpco_dk in (2, 6)) C ON C.corr_docu_dk2 = docu_dk
-                LEFT JOIN (
+                FROM documento
+                JOIN (
                     SELECT * FROM
                     vista
                     JOIN {schema_exadata}.mcpr_andamento ON pcao_vist_dk = vist_dk
                     JOIN {schema_exadata}.mcpr_sub_andamento ON stao_pcao_dk = pcao_dk
                     WHERE pcao_dt_cancelamento IS NULL
-                    AND (stao_tppr_dk in {ANDAMENTOS_TAC} OR (stao_tppr_dk in {ANDAMENTOS_OFICIO} AND upper(stao_destinatario) REGEXP {REGEX_CSMP}))
+                    AND pcao_dt_andamento >= to_timestamp('{date_tac_begin}', 'yyyy-MM-dd')
+                    AND (stao_tppr_dk in {ANDAMENTOS_TAC} OR (stao_tppr_dk in {ANDAMENTOS_OFICIO} AND upper(stao_destinatario) REGEXP '{REGEX_CSMP}'))
                 ) T ON T.vist_docu_dk = docu_dk
-                -- WHERE docu_cldc_dk = 393
-                WHERE corr_tpco_dk IS NULL
             ) A
-            GROUP BY docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel, docu_dt_cadastro
-            HAVING MAX(dt_tac) > MAX(dt_oficio_csmp)
+            GROUP BY docu_dk, docu_nr_mp, docu_orgi_orga_dk_responsavel
+            HAVING MAX(dt_tac) IS NOT NULL
         ) B
+        WHERE dt_oficio IS NULL OR dt_tac > dt_oficio
     """.format(
             schema_exadata=options['schema_exadata'],
+            date_tac_begin=options['date_tac_begin'],
             ANDAMENTOS_TAC=ANDAMENTOS_TAC,
             ANDAMENTOS_OFICIO=ANDAMENTOS_OFICIO,
             ANDAMENTOS_TOTAL=ANDAMENTOS_TOTAL,

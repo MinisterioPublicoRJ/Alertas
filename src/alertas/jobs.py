@@ -45,17 +45,17 @@ from alerta_taco import alerta_taco
 
 class AlertaSession:
     # Table Names
-    TYPES_TABLE_NAME = 'test_mmps_alertas_tipos'
+    TYPES_TABLE_NAME = 'mmps_alertas_tipos'
 
-    ABR1_TABLE_NAME = 'test_mmps_alertas_abr1'
-    RO_TABLE_NAME = 'test_mmps_alertas_ro'
-    COMP_TABLE_NAME = 'test_mmps_alertas_comp'
-    ISPS_TABLE_NAME = 'test_mmps_alertas_isps'
-    MGP_TABLE_NAME = 'test_mmps_alertas_mgp'
+    ABR1_TABLE_NAME = 'mmps_alertas_abr1'
+    RO_TABLE_NAME = 'mmps_alertas_ro'
+    COMP_TABLE_NAME = 'mmps_alertas_comp'
+    ISPS_TABLE_NAME = 'mmps_alertas_isps'
+    MGP_TABLE_NAME = 'mmps_alertas_mgp'
 
-    PRCR_DETALHE_TABLE_NAME = "test_mmps_alerta_detalhe_prcr"
-    ISPS_AUX_TABLE_NAME = "test_mmps_alerta_isps_aux"
-    ABR1_AUX_TABLE_NAME = "test_mmps_alerta_abr1_aux"
+    PRCR_DETALHE_TABLE_NAME = "mmps_alerta_detalhe_prcr"
+    ISPS_AUX_TABLE_NAME = "mmps_alerta_isps_aux"
+    ABR1_AUX_TABLE_NAME = "mmps_alerta_abr1_aux"
 
     # Ordem em que as colunas estão salvas na tabela final
     # Esta ordem deve ser mantida por conta do insertInto que é realizado
@@ -100,23 +100,23 @@ class AlertaSession:
         # 'DCTJ': [alerta_dctj],
         # 'DNTJ': [alerta_dntj],
         # 'DORD': [alerta_dord],
-        # 'GATE': [alerta_gate, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        # 'BDPA': [alerta_bdpa, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        # 'IC1A': [alerta_ic1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        # 'MVVD': [alerta_mvvd, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'GATE': [alerta_gate, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'BDPA': [alerta_bdpa, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'IC1A': [alerta_ic1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'MVVD': [alerta_mvvd, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         # 'OFFP': [alerta_offp],
-        # 'OUVI': [alerta_ouvi, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        # 'PA1A': [alerta_pa1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        # 'PPFP': [alerta_ppfp, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        # 'PRCR': [alerta_prcr, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        # 'VADF': [alerta_vadf, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        # 'NF30': [alerta_nf30, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        # 'DT2I': [alerta_dt2i, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
-        # 'RO': [alerta_ro, RO_TABLE_NAME, COLUMN_ORDER_RO],
-        # 'ABR1': [alerta_abr1, ABR1_TABLE_NAME, COLUMN_ORDER_ABR1],
-        # 'ISPS': [alerta_isps, ISPS_TABLE_NAME, COLUMN_ORDER_ISPS],
-        # 'COMP': [alerta_comp, COMP_TABLE_NAME, COLUMN_ORDER_COMP],
-        # 'FEBT': [alerta_febt, RO_TABLE_NAME, COLUMN_ORDER_RO],
+        'OUVI': [alerta_ouvi, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'PA1A': [alerta_pa1a, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'PPFP': [alerta_ppfp, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'PRCR': [alerta_prcr, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'VADF': [alerta_vadf, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'NF30': [alerta_nf30, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'DT2I': [alerta_dt2i, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'RO': [alerta_ro, RO_TABLE_NAME, COLUMN_ORDER_RO],
+        'ABR1': [alerta_abr1, ABR1_TABLE_NAME, COLUMN_ORDER_ABR1],
+        'ISPS': [alerta_isps, ISPS_TABLE_NAME, COLUMN_ORDER_ISPS],
+        'COMP': [alerta_comp, COMP_TABLE_NAME, COLUMN_ORDER_COMP],
+        'FEBT': [alerta_febt, RO_TABLE_NAME, COLUMN_ORDER_RO],
         'TACO': [alerta_taco, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
     }
 
