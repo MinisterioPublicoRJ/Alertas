@@ -97,8 +97,8 @@ class AlertaSession:
     ]
 
     alerta_list = {
-        # 'DCTJ': [alerta_dctj],
-        # 'DNTJ': [alerta_dntj],
+        'DCTJ': [alerta_dctj, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
+        'DNTJ': [alerta_dntj, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         # 'DORD': [alerta_dord],
         'GATE': [alerta_gate, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
         'BDPA': [alerta_bdpa, MGP_TABLE_NAME, COLUMN_ORDER_MGP],
