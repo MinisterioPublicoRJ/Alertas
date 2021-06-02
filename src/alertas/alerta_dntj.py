@@ -3,14 +3,21 @@ from pyspark.sql.types import IntegerType
 from pyspark.sql.functions import *
 
 from base import spark
+from utils import uuidsha
 
 
 columns = [
-    col('docu_dk').alias('alrt_docu_dk'), 
-    col('docu_nr_mp').alias('alrt_docu_nr_mp'), 
-    col('dt_fim_prazo').alias('alrt_date_referencia'),  
+    col('docu_dk').alias('alrt_docu_dk'),
+    col('docu_nr_mp').alias('alrt_docu_nr_mp'),
+    col('dt_guia_tj').alias('alrt_date_referencia'),
     col('docu_orgi_orga_dk_responsavel').alias('alrt_orgi_orga_dk'),
     col('elapsed').alias('alrt_dias_referencia'),
+    col('alrt_key')
+]
+
+key_columns = [
+    col('docu_dk'),
+    col('dt_guia_tj')
 ]
 
 pre_columns = [
@@ -18,9 +25,7 @@ pre_columns = [
 ]
 
 def alerta_dntj(options):
-    # documento = spark.table('%s.mcpr_documento' % options['schema_exadata']).\
-    #     filter('docu_fsdc_dk = 1')
-    documento = spark.sql("from documento").filter('docu_fsdc_dk = 1')
+    documento = spark.sql("from documentos_ativos")
     classe = spark.table('%s.mmps_classe_hierarquia' % options['schema_exadata_aux']).\
         filter("CLDC_DS_HIERARQUIA NOT LIKE 'PROCESSO CRIMINAL%'")
     personagem = spark.table('%s.mcpr_personagem' % options['schema_exadata']).\
@@ -45,16 +50,20 @@ def alerta_dntj(options):
         groupBy(pre_columns).agg({'movi_dt_recebimento_guia': 'max'}).\
         withColumnRenamed('max(movi_dt_recebimento_guia)', 'movi_dt_guia')
     
-    doc_pre_alerta = doc_tribunal.join(item, doc_tribunal.docu_dk == item.ITEM_DOCU_DK, 'left')
-    doc_retorno = doc_pre_alerta.join(
-        movimentacao, 
-        (doc_pre_alerta.ITEM_MOVI_DK == movimentacao.MOVI_DK) 
-            & (doc_pre_alerta.docu_orgi_orga_dk_responsavel == movimentacao.MOVI_ORGA_DK_DESTINO)
-            & (doc_pre_alerta.movi_dt_guia < movimentacao.MOVI_DT_RECEBIMENTO_GUIA), 
+    item_movi = item.join(movimentacao, item.ITEM_MOVI_DK == movimentacao.MOVI_DK, 'inner')
+    doc_retorno = doc_tribunal.join(
+        item_movi,
+        (doc_tribunal.docu_dk == item_movi.ITEM_DOCU_DK)
+            & (doc_tribunal.docu_orgi_orga_dk_responsavel == item_movi.MOVI_ORGA_DK_DESTINO)
+            & (doc_tribunal.movi_dt_guia < item_movi.MOVI_DT_RECEBIMENTO_GUIA),
         'left'
     )
     doc_nao_retornado = doc_retorno.filter('movi_dk is null').\
-        withColumn('dt_fim_prazo', expr("to_timestamp(date_add(movi_dt_guia, 120), 'yyyy-MM-dd HH:mm:ss')")).\
-        withColumn('elapsed', lit(datediff(current_date(), 'dt_fim_prazo')).cast(IntegerType()))
+        withColumn('dt_guia_tj', expr("to_timestamp(movi_dt_guia, 'yyyy-MM-dd HH:mm:ss')")).\
+        withColumn('elapsed', lit(datediff(current_date(), 'dt_guia_tj')).cast(IntegerType()))
 
-    return doc_nao_retornado.filter('elapsed > 0').select(columns)
+    resultado = doc_nao_retornado.filter('elapsed > 120')
+
+    resultado = resultado.withColumn('alrt_key', uuidsha(*key_columns))
+
+    return resultado.select(columns)
